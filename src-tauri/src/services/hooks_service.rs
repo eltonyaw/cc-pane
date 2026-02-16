@@ -127,6 +127,17 @@ def main():
         sys.exit(0)
 
     project_dir = Path(os.environ.get("CLAUDE_PROJECT_DIR", ".")).resolve()
+
+    # 安全检查：验证 project_dir 是一个存在的目录
+    if not project_dir.is_dir():
+        print(f"[ccpanes] 警告: CLAUDE_PROJECT_DIR 不是有效目录: {project_dir}", file=sys.stderr)
+        sys.exit(0)
+
+    # 拒绝根目录或系统敏感路径
+    if project_dir == Path("/") or project_dir == Path(project_dir.anchor):
+        print("[ccpanes] 警告: CLAUDE_PROJECT_DIR 指向根目录，跳过注入", file=sys.stderr)
+        sys.exit(0)
+
     ccpanes_dir = project_dir / ".ccpanes"
 
     # 1. 会话上下文头
