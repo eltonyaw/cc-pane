@@ -1,4 +1,5 @@
 use crate::models::{ScannedRepo, ScannedWorktree, Workspace, WorkspaceProject};
+use crate::utils::{output_with_timeout, GIT_LOCAL_TIMEOUT};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -338,10 +339,12 @@ impl WorkspaceService {
 
     /// 使用 git worktree list --porcelain 获取仓库的所有 worktree
     fn get_worktrees_for_repo(repo_path: &Path) -> Vec<ScannedWorktree> {
-        let output = Command::new("git")
-            .args(["worktree", "list", "--porcelain"])
-            .current_dir(repo_path)
-            .output();
+        let output = output_with_timeout(
+            Command::new("git")
+                .args(["worktree", "list", "--porcelain"])
+                .current_dir(repo_path),
+            GIT_LOCAL_TIMEOUT,
+        );
 
         let output = match output {
             Ok(o) if o.status.success() => o,

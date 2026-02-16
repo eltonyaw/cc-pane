@@ -1,5 +1,8 @@
 use crate::services::HistoryService;
-use crate::utils::{AppResult, validate_git_url, validate_path};
+use crate::utils::{
+    output_with_timeout, AppResult, validate_git_url, validate_path,
+    GIT_LOCAL_TIMEOUT, GIT_NETWORK_TIMEOUT,
+};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::process::{Command, Stdio};
@@ -15,11 +18,13 @@ pub fn get_git_branch(path: String) -> Option<String> {
         return None;
     }
 
-    let output = Command::new("git")
-        .args(["rev-parse", "--abbrev-ref", "HEAD"])
-        .current_dir(project_path)
-        .output()
-        .ok()?;
+    let output = output_with_timeout(
+        Command::new("git")
+            .args(["rev-parse", "--abbrev-ref", "HEAD"])
+            .current_dir(project_path),
+        GIT_LOCAL_TIMEOUT,
+    )
+    .ok()?;
 
     if output.status.success() {
         let branch = String::from_utf8_lossy(&output.stdout)
@@ -44,11 +49,13 @@ pub fn get_git_status(path: String) -> Option<bool> {
         return None;
     }
 
-    let output = Command::new("git")
-        .args(["status", "--porcelain"])
-        .current_dir(project_path)
-        .output()
-        .ok()?;
+    let output = output_with_timeout(
+        Command::new("git")
+            .args(["status", "--porcelain"])
+            .current_dir(project_path),
+        GIT_LOCAL_TIMEOUT,
+    )
+    .ok()?;
 
     if output.status.success() {
         let status = String::from_utf8_lossy(&output.stdout);
@@ -66,10 +73,12 @@ fn run_git_command(path: &str, args: &[&str]) -> AppResult<String> {
         return Err("路径不存在".into());
     }
 
-    let output = Command::new("git")
-        .args(args)
-        .current_dir(project_path)
-        .output()?;
+    let output = output_with_timeout(
+        Command::new("git")
+            .args(args)
+            .current_dir(project_path),
+        GIT_NETWORK_TIMEOUT,
+    )?;
 
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
     let stderr = String::from_utf8_lossy(&output.stderr).to_string();
@@ -239,8 +248,20 @@ pub async fn git_clone(
         })
     });
 
-    // 等待完成
-    let status = child.wait()?;
+    // 等待完成（5 分钟超时）
+    let clone_timeout = std::time::Duration::from_secs(300);
+    let start = std::time::Instant::now();
+    let status = loop {
+        match child.try_wait()? {
+            Some(s) => break s,
+            None if start.elapsed() > clone_timeout => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err("git clone 超时（已等待 5 分钟）".into());
+            }
+            None => std::thread::sleep(std::time::Duration::from_millis(200)),
+        }
+    };
 
     // 等待进度线程结束
     if let Some(thread) = progress_thread {

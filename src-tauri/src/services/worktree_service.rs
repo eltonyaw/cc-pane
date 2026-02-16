@@ -1,3 +1,4 @@
+use crate::utils::{output_with_timeout, GIT_LOCAL_TIMEOUT};
 use std::path::PathBuf;
 use std::process::Command;
 use serde::{Deserialize, Serialize};
@@ -32,11 +33,13 @@ impl WorktreeService {
             return Err("不是 Git 仓库".to_string());
         }
 
-        let output = Command::new("git")
-            .args(["worktree", "list", "--porcelain"])
-            .current_dir(project_path)
-            .output()
-            .map_err(|e| format!("执行 git 命令失败: {}", e))?;
+        let output = output_with_timeout(
+            Command::new("git")
+                .args(["worktree", "list", "--porcelain"])
+                .current_dir(project_path),
+            GIT_LOCAL_TIMEOUT,
+        )
+        .map_err(|e| format!("执行 git 命令失败: {}", e))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -134,11 +137,13 @@ impl WorktreeService {
             args.push(b.to_string());
         }
 
-        let output = Command::new("git")
-            .args(&args)
-            .current_dir(project_path)
-            .output()
-            .map_err(|e| format!("执行 git 命令失败: {}", e))?;
+        let output = output_with_timeout(
+            Command::new("git")
+                .args(&args)
+                .current_dir(project_path),
+            GIT_LOCAL_TIMEOUT,
+        )
+        .map_err(|e| format!("执行 git 命令失败: {}", e))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -158,11 +163,13 @@ impl WorktreeService {
             return Err("不是 Git 仓库".to_string());
         }
 
-        let output = Command::new("git")
-            .args(["worktree", "remove", worktree_path])
-            .current_dir(project_path)
-            .output()
-            .map_err(|e| format!("执行 git 命令失败: {}", e))?;
+        let output = output_with_timeout(
+            Command::new("git")
+                .args(["worktree", "remove", worktree_path])
+                .current_dir(project_path),
+            GIT_LOCAL_TIMEOUT,
+        )
+        .map_err(|e| format!("执行 git 命令失败: {}", e))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
