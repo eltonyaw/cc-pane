@@ -48,7 +48,7 @@ export const useProvidersStore = create<ProvidersState>((set, get) => ({
     try {
       const workspaces = await workspaceService.listWorkspaces();
       for (const ws of workspaces) {
-        if (ws.provider_id === id) {
+        if (ws.providerId === id) {
           await workspaceService.updateWorkspaceProvider(ws.name, null);
         }
       }

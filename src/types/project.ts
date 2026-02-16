@@ -5,7 +5,7 @@ export interface Project {
   id: string;
   name: string;
   path: string;
-  created_at: string;
+  createdAt: string;
   alias?: string;
 }
 

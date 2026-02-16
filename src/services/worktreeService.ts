@@ -4,7 +4,7 @@ export interface WorktreeInfo {
   path: string;
   branch: string;
   commit: string;
-  is_main: boolean;
+  isMain: boolean;
 }
 
 /**

@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 /// Worktree 信息
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WorktreeInfo {
     pub path: String,
     pub branch: String,

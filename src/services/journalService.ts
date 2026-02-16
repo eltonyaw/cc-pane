@@ -1,9 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
 
 export interface JournalIndex {
-  active_file: string;
-  total_sessions: number;
-  last_active: string;
+  activeFile: string;
+  totalSessions: number;
+  lastActive: string;
 }
 
 /**

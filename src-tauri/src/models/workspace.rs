@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 /// 工作空间中的项目
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkspaceProject {
     pub id: String,
     pub path: String,
@@ -10,6 +11,7 @@ pub struct WorkspaceProject {
 
 /// 工作空间
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Workspace {
     pub id: String,
     pub name: String,
@@ -46,6 +48,7 @@ impl WorkspaceProject {
 
 /// 扫描发现的 worktree 信息
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ScannedWorktree {
     pub path: String,
     pub branch: String,
@@ -53,6 +56,7 @@ pub struct ScannedWorktree {
 
 /// 扫描发现的仓库信息（按主仓库分组）
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ScannedRepo {
     pub main_path: String,
     pub main_branch: String,

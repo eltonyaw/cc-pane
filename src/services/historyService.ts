@@ -2,10 +2,10 @@ import { invoke } from "@tauri-apps/api/core";
 
 export interface LaunchRecord {
   id: number;
-  project_id: string;
-  project_name: string;
-  project_path: string;
-  launched_at: string;
+  projectId: string;
+  projectName: string;
+  projectPath: string;
+  launchedAt: string;
 }
 
 export const historyService = {

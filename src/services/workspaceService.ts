@@ -93,8 +93,8 @@ export interface ScannedWorktree {
 }
 
 export interface ScannedRepo {
-  main_path: string;
-  main_branch: string;
+  mainPath: string;
+  mainBranch: string;
   worktrees: ScannedWorktree[];
 }
 

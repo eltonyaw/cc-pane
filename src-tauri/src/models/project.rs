@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 /// 项目数据模型
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Project {
     pub id: String,
     pub name: String,

@@ -7,6 +7,7 @@ const MAX_LINES: usize = 2000;
 
 /// 会话摘要
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SessionSummary {
     pub title: String,
     pub summary: String,
@@ -16,6 +17,7 @@ pub struct SessionSummary {
 
 /// Journal 索引信息
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct JournalIndex {
     pub active_file: String,
     pub total_sessions: u32,
@@ -113,7 +115,7 @@ impl JournalService {
 
         for line in content.lines() {
             if line.contains("Total Sessions") {
-                if let Some(num_str) = line.split(':').last() {
+                if let Some(num_str) = line.split(':').next_back() {
                     if let Ok(num) = num_str.trim().parse::<u32>() {
                         return Ok(num);
                     }

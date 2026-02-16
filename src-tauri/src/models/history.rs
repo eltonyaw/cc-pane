@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 /// 文件版本信息
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FileVersion {
     /// 版本ID（时间戳）
     pub id: String,
@@ -29,6 +30,7 @@ pub struct VersionsMetadata {
 
 /// 历史记录配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct HistoryConfig {
     pub enabled: bool,
     pub ignore_patterns: Vec<String>,
@@ -73,17 +75,9 @@ impl Default for HistoryConfig {
 }
 
 /// TOML 配置文件结构
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ProjectConfig {
     pub history: HistoryConfig,
-}
-
-impl Default for ProjectConfig {
-    fn default() -> Self {
-        Self {
-            history: HistoryConfig::default(),
-        }
-    }
 }
 
 // ============ Diff 模型 ============
@@ -100,6 +94,7 @@ pub enum DiffChangeType {
 
 /// 行内字符级变更标记
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct InlineChange {
     pub start: usize,
     pub end: usize,
@@ -108,6 +103,7 @@ pub struct InlineChange {
 
 /// Diff 中的单行信息
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DiffLine {
     pub change_type: DiffChangeType,
     pub content: String,
@@ -118,6 +114,7 @@ pub struct DiffLine {
 
 /// Diff 统计
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct DiffStats {
     pub additions: usize,
     pub deletions: usize,
@@ -126,6 +123,7 @@ pub struct DiffStats {
 
 /// Diff hunk（一段连续变更）
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DiffHunk {
     pub old_start: usize,
     pub old_count: usize,
@@ -136,6 +134,7 @@ pub struct DiffHunk {
 
 /// Diff 结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DiffResult {
     pub hunks: Vec<DiffHunk>,
     pub stats: DiffStats,
@@ -147,6 +146,7 @@ pub struct DiffResult {
 
 /// 标签关联的文件快照引用
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LabelFileSnapshot {
     /// 文件相对路径
     pub file_path: String,
@@ -156,6 +156,7 @@ pub struct LabelFileSnapshot {
 
 /// 历史标签
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct HistoryLabel {
     /// 标签唯一 ID
     pub id: String,
@@ -178,6 +179,7 @@ pub struct HistoryLabel {
 
 /// 最近变更条目（跨文件）
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RecentChange {
     pub file_path: String,
     pub version_id: String,
@@ -192,6 +194,7 @@ pub struct RecentChange {
 
 /// 跨 Worktree 最近变更条目
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WorktreeRecentChange {
     pub worktree_path: String,
     pub worktree_branch: String,

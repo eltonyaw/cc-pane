@@ -45,7 +45,7 @@ export default function ScanImportDialog({
     if (open && repos.length > 0) {
       const paths = new Set<string>();
       for (const repo of repos) {
-        paths.add(repo.main_path);
+        paths.add(repo.mainPath);
         for (const wt of repo.worktrees) {
           paths.add(wt.path);
         }
@@ -61,7 +61,7 @@ export default function ScanImportDialog({
     } else {
       const paths = new Set<string>();
       for (const repo of repos) {
-        paths.add(repo.main_path);
+        paths.add(repo.mainPath);
         for (const wt of repo.worktrees) {
           paths.add(wt.path);
         }
@@ -80,7 +80,7 @@ export default function ScanImportDialog({
   }
 
   function toggleRepo(repo: ScannedRepo) {
-    const allPaths = [repo.main_path, ...repo.worktrees.map((w) => w.path)];
+    const allPaths = [repo.mainPath, ...repo.worktrees.map((w) => w.path)];
     const allSelected = allPaths.every((p) => selectedPaths.has(p));
     setSelectedPaths((prev) => {
       const next = new Set(prev);
@@ -138,7 +138,7 @@ export default function ScanImportDialog({
         {/* 仓库列表 */}
         <div className="flex-1 overflow-y-auto max-h-[400px] flex flex-col gap-1 py-1">
           {repos.map((repo, idx) => (
-            <div key={repo.main_path} className="rounded-md overflow-hidden" style={{ border: "1px solid var(--app-border)" }}>
+            <div key={repo.mainPath} className="rounded-md overflow-hidden" style={{ border: "1px solid var(--app-border)" }}>
               <div
                 className="flex items-center gap-1.5 px-2.5 py-2 cursor-pointer transition-colors hover:bg-accent"
                 onClick={() => toggleExpand(idx)}
@@ -150,18 +150,18 @@ export default function ScanImportDialog({
                 )}
                 <input
                   type="checkbox"
-                  checked={[repo.main_path, ...repo.worktrees.map((w) => w.path)].every((p) => selectedPaths.has(p))}
+                  checked={[repo.mainPath, ...repo.worktrees.map((w) => w.path)].every((p) => selectedPaths.has(p))}
                   readOnly
                   className="cursor-pointer shrink-0"
                   onClick={(e) => { e.stopPropagation(); toggleRepo(repo); }}
                 />
                 <Folder size={14} className="shrink-0" style={{ color: "var(--app-accent)" }} />
                 <span className="flex-1 text-[13px] font-medium truncate" style={{ color: "var(--app-text-primary)" }}>
-                  {pathName(repo.main_path)}
+                  {pathName(repo.mainPath)}
                 </span>
-                {repo.main_branch && (
+                {repo.mainBranch && (
                   <Badge variant="outline" className="text-[10px] px-1 shrink-0">
-                    {repo.main_branch}
+                    {repo.mainBranch}
                   </Badge>
                 )}
                 {repo.worktrees.length > 0 && (
@@ -175,18 +175,18 @@ export default function ScanImportDialog({
                 <div className="flex flex-col gap-0.5 px-1.5 py-1" style={{ borderTop: "1px solid var(--app-border)" }}>
                   <div
                     className="flex items-center gap-1.5 px-2 py-1 pl-7 rounded cursor-pointer transition-colors hover:bg-accent"
-                    onClick={() => togglePath(repo.main_path)}
+                    onClick={() => togglePath(repo.mainPath)}
                   >
                     <input
                       type="checkbox"
-                      checked={selectedPaths.has(repo.main_path)}
+                      checked={selectedPaths.has(repo.mainPath)}
                       readOnly
                       className="cursor-pointer shrink-0"
-                      onClick={(e) => { e.stopPropagation(); togglePath(repo.main_path); }}
+                      onClick={(e) => { e.stopPropagation(); togglePath(repo.mainPath); }}
                     />
                     <Folder size={12} className="shrink-0" style={{ color: "var(--app-text-tertiary)" }} />
                     <span className="flex-1 text-xs truncate" style={{ color: "var(--app-text-primary)" }}>
-                      {pathName(repo.main_path)}
+                      {pathName(repo.mainPath)}
                     </span>
                     <Badge variant="outline" className="text-[9px] px-1 h-4 shrink-0">
                       主

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import {
   Folder, ChevronRight, Trash2, Plus, Pencil, FileText, Clock,
   FolderOpen, FolderSearch, ShieldCheck, Terminal, Cloud, Check, GitBranch,
+  LayoutGrid,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -16,7 +17,7 @@ import {
 } from "@/components/ui/context-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useWorkspacesStore, useProvidersStore, useThemeStore, useDialogStore } from "@/stores";
+import { useWorkspacesStore, useProvidersStore, useThemeStore, useDialogStore, useTasksStore } from "@/stores";
 import { worktreeService, type WorktreeInfo } from "@/services";
 import { scanDirectory, type ScannedRepo } from "@/services/workspaceService";
 import ScanImportDialog from "@/components/ScanImportDialog";
@@ -26,10 +27,12 @@ import type { Workspace, WorkspaceProject } from "@/types";
 
 interface WorkspaceTreeProps {
   onOpenTerminal: (path: string, workspaceName?: string, providerId?: string) => void;
+  onOpenBoard: (boardId: string, boardName: string) => void;
 }
 
 export default function WorkspaceTree({
   onOpenTerminal,
+  onOpenBoard,
 }: WorkspaceTreeProps) {
   const onOpenJournal = useDialogStore((s) => s.openJournal);
   const onOpenHistory = useDialogStore((s) => s.openLocalHistory);
@@ -284,11 +287,11 @@ export default function WorkspaceTree({
 
   function handleOpenWorkspace(ws: Workspace) {
     if (ws.projects.length === 0) return;
-    onOpenTerminal(ws.projects[0].path, ws.name, ws.provider_id);
+    onOpenTerminal(ws.projects[0].path, ws.name, ws.providerId);
   }
 
   function handleOpenProject(project: WorkspaceProject, ws?: Workspace) {
-    onOpenTerminal(project.path, ws?.name, ws?.provider_id);
+    onOpenTerminal(project.path, ws?.name, ws?.providerId);
   }
 
   async function handleSetWorkspaceProvider(ws: Workspace, providerId: string | null) {
@@ -301,6 +304,29 @@ export default function WorkspaceTree({
 
   function handleOpenWorktree(path: string) {
     onOpenTerminal(path);
+  }
+
+  // ============ 看板操作 ============
+
+  const createBoard = useTasksStore((s) => s.createBoard);
+
+  async function handleOpenBoard(ws: Workspace) {
+    try {
+      // 加载工作空间的看板列表
+      const boards = await useTasksStore.getState().loadBoards(ws.name).then(() => useTasksStore.getState().boards);
+      const wsBoards = boards.filter((b) => b.workspace_name === ws.name);
+
+      if (wsBoards.length > 0) {
+        // 打开第一个看板
+        onOpenBoard(wsBoards[0].id, wsBoards[0].name);
+      } else {
+        // 自动创建默认看板
+        const board = await createBoard(ws.name, ws.name);
+        onOpenBoard(board.id, board.name);
+      }
+    } catch (e) {
+      toast.error(`打开看板失败: ${e}`);
+    }
   }
 
   return (
@@ -345,6 +371,9 @@ export default function WorkspaceTree({
                   <Terminal size={14} className="mr-2" /> 打开终端
                 </ContextMenuItem>
                 <ContextMenuSeparator />
+                <ContextMenuItem onClick={() => handleOpenBoard(ws)}>
+                  <LayoutGrid size={14} className="mr-2" /> 任务看板
+                </ContextMenuItem>
                 <ContextMenuItem onClick={() => onOpenJournal(ws.name)}>
                   <FileText size={14} className="mr-2" /> 会话日志
                 </ContextMenuItem>
@@ -357,13 +386,13 @@ export default function WorkspaceTree({
                   </ContextMenuSubTrigger>
                   <ContextMenuSubContent className="w-44">
                     <ContextMenuItem onClick={() => handleSetWorkspaceProvider(ws, null)}>
-                      {!ws.provider_id ? <Check size={14} className="mr-2" /> : <span className="mr-2 w-[14px]" />}
+                      {!ws.providerId ? <Check size={14} className="mr-2" /> : <span className="mr-2 w-[14px]" />}
                       不指定（继承系统）
                     </ContextMenuItem>
                     {providerList.length > 0 && <ContextMenuSeparator />}
                     {providerList.map((p) => (
                       <ContextMenuItem key={p.id} onClick={() => handleSetWorkspaceProvider(ws, p.id)}>
-                        {ws.provider_id === p.id ? <Check size={14} className="mr-2" /> : <span className="mr-2 w-[14px]" />}
+                        {ws.providerId === p.id ? <Check size={14} className="mr-2" /> : <span className="mr-2 w-[14px]" />}
                         {p.name}
                       </ContextMenuItem>
                     ))}
@@ -451,9 +480,9 @@ export default function WorkspaceTree({
                           >
                             <FolderOpen size={12} className="shrink-0" style={{ color: "var(--app-text-tertiary)" }} />
                             <span className="flex-1 text-[11px] truncate" style={{ color: "var(--app-text-secondary)" }}>
-                              {wt.is_main ? "主目录" : wt.branch || wt.path}
+                              {wt.isMain ? "主目录" : wt.branch || wt.path}
                             </span>
-                            {wt.is_main && (
+                            {wt.isMain && (
                               <Badge variant="outline" className="text-[9px] px-1 h-4">
                                 主
                               </Badge>

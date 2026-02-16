@@ -8,7 +8,7 @@ export interface Workspace {
   id: string;
   name: string;
   alias?: string;
-  created_at: string;
+  createdAt: string;
   projects: WorkspaceProject[];
-  provider_id?: string;
+  providerId?: string;
 }

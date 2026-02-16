@@ -61,7 +61,7 @@ export default function WorktreeManager({ open, onOpenChange, projectPath, onOpe
   }
 
   async function removeWorktree(wt: WorktreeInfo) {
-    if (wt.is_main) { toast.error("不能删除主工作目录"); return; }
+    if (wt.isMain) { toast.error("不能删除主工作目录"); return; }
     if (!confirm(`确定要删除 Worktree "${wt.path}" 吗？`)) return;
     try {
       await worktreeService.remove(projectPath, wt.path);
@@ -110,7 +110,7 @@ export default function WorktreeManager({ open, onOpenChange, projectPath, onOpe
                     key={wt.path}
                     className="flex justify-between items-center p-3 rounded-lg"
                     style={{
-                      border: `1px solid ${wt.is_main ? "var(--app-accent)" : "var(--app-border)"}`,
+                      border: `1px solid ${wt.isMain ? "var(--app-accent)" : "var(--app-border)"}`,
                       background: "var(--app-content)",
                     }}
                   >
@@ -118,7 +118,7 @@ export default function WorktreeManager({ open, onOpenChange, projectPath, onOpe
                       <div className="flex items-center gap-1.5 font-medium" style={{ color: "var(--app-text-primary)" }}>
                         <GitBranch size={14} />
                         <span>{wt.branch || "(detached)"}</span>
-                        {wt.is_main && (
+                        {wt.isMain && (
                           <span className="text-[10px] px-1.5 py-0.5 rounded text-white" style={{ background: "var(--app-accent)" }}>
                             主目录
                           </span>
@@ -131,7 +131,7 @@ export default function WorktreeManager({ open, onOpenChange, projectPath, onOpe
                       <Button variant="ghost" size="sm" onClick={() => onOpenWorktree(wt.path)} title="在此目录打开">
                         <FolderOpen size={14} />
                       </Button>
-                      {!wt.is_main && (
+                      {!wt.isMain && (
                         <Button variant="ghost" size="sm" onClick={() => removeWorktree(wt)} title="删除">
                           <Trash2 size={14} />
                         </Button>

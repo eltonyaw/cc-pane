@@ -138,8 +138,8 @@ export default function JournalPanel({ open, onOpenChange, workspaceName, onSave
               </h3>
               {journalIndex && (
                 <div className="flex gap-3 text-[11px]" style={{ color: "var(--app-text-tertiary)" }}>
-                  <span>共 {journalIndex.total_sessions} 个会话</span>
-                  <span>{journalIndex.active_file}</span>
+                  <span>共 {journalIndex.totalSessions} 个会话</span>
+                  <span>{journalIndex.activeFile}</span>
                 </div>
               )}
             </div>

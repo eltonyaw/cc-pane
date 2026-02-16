@@ -2,21 +2,21 @@ import { invoke } from "@tauri-apps/api/core";
 
 export interface FileVersion {
   id: string;
-  file_path: string;
+  filePath: string;
   hash: string;
   size: number;
-  created_at: string;
-  is_deleted: boolean;
+  createdAt: string;
+  isDeleted: boolean;
   branch: string;
 }
 
 export interface HistoryConfig {
   enabled: boolean;
-  ignore_patterns: string[];
-  max_versions_per_file: number;
-  max_age_days: number;
-  max_file_size: number;
-  max_total_size: number;
+  ignorePatterns: string[];
+  maxVersionsPerFile: number;
+  maxAgeDays: number;
+  maxFileSize: number;
+  maxTotalSize: number;
 }
 
 // ============ Diff 类型 ============
@@ -26,15 +26,15 @@ export type DiffChangeType = "equal" | "insert" | "delete" | "replace";
 export interface InlineChange {
   start: number;
   end: number;
-  change_type: DiffChangeType;
+  changeType: DiffChangeType;
 }
 
 export interface DiffLine {
-  change_type: DiffChangeType;
+  changeType: DiffChangeType;
   content: string;
-  old_line_no: number | null;
-  new_line_no: number | null;
-  inline_changes: InlineChange[] | null;
+  oldLineNo: number | null;
+  newLineNo: number | null;
+  inlineChanges: InlineChange[] | null;
 }
 
 export interface DiffStats {
@@ -44,53 +44,53 @@ export interface DiffStats {
 }
 
 export interface DiffHunk {
-  old_start: number;
-  old_count: number;
-  new_start: number;
-  new_count: number;
+  oldStart: number;
+  oldCount: number;
+  newStart: number;
+  newCount: number;
   lines: DiffLine[];
 }
 
 export interface DiffResult {
   hunks: DiffHunk[];
   stats: DiffStats;
-  is_binary: boolean;
+  isBinary: boolean;
   truncated: boolean;
 }
 
 // ============ 标签类型 ============
 
 export interface LabelFileSnapshot {
-  file_path: string;
-  version_id: string;
+  filePath: string;
+  versionId: string;
 }
 
 export interface HistoryLabel {
   id: string;
   name: string;
-  label_type: string;
+  labelType: string;
   source: string;
   timestamp: string;
-  file_snapshots: LabelFileSnapshot[];
+  fileSnapshots: LabelFileSnapshot[];
   branch: string;
 }
 
 // ============ 最近更改类型 ============
 
 export interface RecentChange {
-  file_path: string;
-  version_id: string;
+  filePath: string;
+  versionId: string;
   timestamp: string;
   size: number;
   hash: string;
-  label_name: string | null;
+  labelName: string | null;
   branch: string;
 }
 
 export interface WorktreeRecentChange {
-  worktree_path: string;
-  worktree_branch: string;
-  is_main: boolean;
+  worktreePath: string;
+  worktreeBranch: string;
+  isMain: boolean;
   change: RecentChange;
 }
 

@@ -27,10 +27,10 @@ export default function RecentChangesPanel({ open, onOpenChange, projectPath, on
   const groupedWorktreeChanges = useMemo(() => {
     const groups: Record<string, { path: string; branch: string; isMain: boolean; changes: RecentChange[] }> = {};
     for (const wc of worktreeChanges) {
-      if (!groups[wc.worktree_path]) {
-        groups[wc.worktree_path] = { path: wc.worktree_path, branch: wc.worktree_branch, isMain: wc.is_main, changes: [] };
+      if (!groups[wc.worktreePath]) {
+        groups[wc.worktreePath] = { path: wc.worktreePath, branch: wc.worktreeBranch, isMain: wc.isMain, changes: [] };
       }
-      groups[wc.worktree_path].changes.push(wc.change);
+      groups[wc.worktreePath].changes.push(wc.change);
     }
     return Object.values(groups).sort((a, b) => {
       if (a.isMain && !b.isMain) return -1;
@@ -78,18 +78,18 @@ export default function RecentChangesPanel({ open, onOpenChange, projectPath, on
   function renderChangeItem(change: RecentChange, indent = false) {
     return (
       <div
-        key={`${change.file_path}-${change.version_id}`}
+        key={`${change.filePath}-${change.versionId}`}
         className="flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-colors hover:bg-[var(--app-hover)]"
         style={indent ? { paddingLeft: 24 } : undefined}
-        onClick={() => handleClickChange(change.file_path)}
+        onClick={() => handleClickChange(change.filePath)}
       >
         <div className="shrink-0" style={{ color: "var(--app-text-tertiary)" }}>
           <FileText size={14} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-[13px] truncate" style={{ color: "var(--app-text-primary)" }}>
-            <span style={{ color: "var(--app-text-tertiary)" }}>{getDirName(change.file_path)}</span>
-            <span className="font-medium">{getFileName(change.file_path)}</span>
+            <span style={{ color: "var(--app-text-tertiary)" }}>{getDirName(change.filePath)}</span>
+            <span className="font-medium">{getFileName(change.filePath)}</span>
           </div>
           <div className="flex gap-3 text-[11px] mt-0.5" style={{ color: "var(--app-text-tertiary)" }}>
             <span title={formatFullTime(change.timestamp)}>{formatRelativeTime(change.timestamp)}</span>
@@ -102,10 +102,10 @@ export default function RecentChangesPanel({ open, onOpenChange, projectPath, on
             )}
           </div>
         </div>
-        {change.label_name && (
+        {change.labelName && (
           <Badge variant="outline" className="shrink-0 text-[10px]">
             <Tag size={10} className="mr-1" />
-            {change.label_name}
+            {change.labelName}
           </Badge>
         )}
       </div>

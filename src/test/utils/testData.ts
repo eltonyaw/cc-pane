@@ -16,7 +16,7 @@ export function createTestProject(overrides?: Partial<Project>): Project {
     id,
     name: `project-${id}`,
     path: `/tmp/test/${id}`,
-    created_at: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
     ...overrides,
   };
 }

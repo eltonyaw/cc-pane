@@ -83,11 +83,11 @@ export default function LocalHistoryPanel({
   const versionLabelsMap = useMemo(() => {
     const map = new Map<string, HistoryLabel[]>();
     for (const label of labels) {
-      for (const snap of label.file_snapshots) {
-        if (snap.file_path === filePath) {
-          const arr = map.get(snap.version_id) || [];
+      for (const snap of label.fileSnapshots) {
+        if (snap.filePath === filePath) {
+          const arr = map.get(snap.versionId) || [];
           arr.push(label);
-          map.set(snap.version_id, arr);
+          map.set(snap.versionId, arr);
         }
       }
     }
@@ -102,7 +102,7 @@ export default function LocalHistoryPanel({
       const targetLabel = labels.find((l) => l.id === labelFilter);
       if (targetLabel) {
         const versionIds = new Set(
-          targetLabel.file_snapshots.filter((s) => s.file_path === filePath).map((s) => s.version_id)
+          targetLabel.fileSnapshots.filter((s) => s.filePath === filePath).map((s) => s.versionId)
         );
         result = result.filter((v) => versionIds.has(v.id));
       }
@@ -200,10 +200,10 @@ export default function LocalHistoryPanel({
       const label: HistoryLabel = {
         id: crypto.randomUUID(),
         name: labelName.trim(),
-        label_type: "manual",
+        labelType: "manual",
         source: "user",
         timestamp: new Date().toISOString(),
-        file_snapshots: [{ file_path: filePath || "", version_id: labelTarget.id }],
+        fileSnapshots: [{ filePath: filePath || "", versionId: labelTarget.id }],
         branch: labelTarget.branch || "",
       };
       await localHistoryService.putLabel(projectPath, label);
@@ -217,8 +217,8 @@ export default function LocalHistoryPanel({
 
   async function restoreDeletedFile(file: FileVersion) {
     try {
-      await localHistoryService.restoreFileVersion(projectPath, file.file_path, file.id);
-      toast.success(`文件 ${file.file_path} 已恢复`);
+      await localHistoryService.restoreFileVersion(projectPath, file.filePath, file.id);
+      toast.success(`文件 ${file.filePath} 已恢复`);
       await loadDeletedFiles();
     } catch (e) {
       toast.error("恢复失败: " + e);
@@ -316,9 +316,9 @@ export default function LocalHistoryPanel({
                       <div key={file.id} className="flex items-center justify-between px-3 py-2.5 rounded-md mb-1 transition-colors hover:bg-[var(--app-hover)]">
                         <div className="flex items-center gap-2 flex-1 min-w-0">
                           <Trash2 size={14} className="shrink-0 text-destructive" />
-                          <span className="text-[13px] truncate" style={{ color: "var(--app-text-primary)" }}>{file.file_path}</span>
-                          <span className="text-[11px] shrink-0" style={{ color: "var(--app-text-tertiary)" }} title={formatFullTime(file.created_at)}>
-                            {formatRelativeTime(file.created_at)}
+                          <span className="text-[13px] truncate" style={{ color: "var(--app-text-primary)" }}>{file.filePath}</span>
+                          <span className="text-[11px] shrink-0" style={{ color: "var(--app-text-tertiary)" }} title={formatFullTime(file.createdAt)}>
+                            {formatRelativeTime(file.createdAt)}
                           </span>
                           <span className="text-[11px] shrink-0" style={{ color: "var(--app-text-tertiary)" }}>{formatSize(file.size)}</span>
                         </div>
@@ -352,7 +352,7 @@ export default function LocalHistoryPanel({
                         >
                           <div className="flex items-center gap-1.5 text-[13px]" style={{ color: "var(--app-text-primary)" }}>
                             <Clock size={12} />
-                            <span title={formatFullTime(version.created_at)}>{formatRelativeTime(version.created_at)}</span>
+                            <span title={formatFullTime(version.createdAt)}>{formatRelativeTime(version.createdAt)}</span>
                           </div>
                           <div className="text-[11px] mt-1 pl-[18px] flex items-center gap-2" style={{ color: "var(--app-text-tertiary)" }}>
                             <span>{formatSize(version.size)}</span>

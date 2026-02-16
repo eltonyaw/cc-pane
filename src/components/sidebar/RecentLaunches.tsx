@@ -34,14 +34,14 @@ export default function RecentLaunches({ launchHistory, onOpenTerminal, onClearH
               ? 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
               : 'text-slate-500 hover:bg-white/40 hover:text-slate-900 hover:shadow-sm'
           }`}
-          onClick={() => onOpenTerminal(record.project_path)}
+          onClick={() => onOpenTerminal(record.projectPath)}
         >
           <div className="flex items-center gap-3">
             <Terminal className="w-4 h-4 text-slate-400 group-hover:text-slate-500" />
-            <span className="text-sm font-medium tracking-wide truncate max-w-[140px]">{record.project_name}</span>
+            <span className="text-sm font-medium tracking-wide truncate max-w-[140px]">{record.projectName}</span>
           </div>
           <span className={`text-[10px] shrink-0 ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
-            {formatRelativeTime(record.launched_at)}
+            {formatRelativeTime(record.launchedAt)}
           </span>
         </button>
       ))}

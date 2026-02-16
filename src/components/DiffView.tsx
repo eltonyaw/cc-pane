@@ -13,7 +13,7 @@ interface Segment {
 
 function getSegments(line: DiffLine): Segment[] {
   const content = line.content;
-  const changes = line.inline_changes;
+  const changes = line.inlineChanges;
   if (!changes || changes.length === 0) {
     return [{ text: content, changed: false }];
   }
@@ -59,7 +59,7 @@ export default memo(function DiffView({ diff, loading }: DiffViewProps) {
     );
   }
 
-  if (diff.is_binary) {
+  if (diff.isBinary) {
     return (
       <div className="h-full flex items-center justify-center text-[13px]" style={{ color: "var(--app-text-tertiary)" }}>
         二进制文件，无法显示差异
@@ -107,42 +107,42 @@ export default memo(function DiffView({ diff, loading }: DiffViewProps) {
               borderBottom: "1px solid var(--app-border)",
             }}
           >
-            @@ -{hunk.old_start},{hunk.old_count} +{hunk.new_start},{hunk.new_count} @@
+            @@ -{hunk.oldStart},{hunk.oldCount} +{hunk.newStart},{hunk.newCount} @@
           </div>
 
           {hunk.lines.map((line, li) => {
             const bgColor =
-              line.change_type === "insert"
+              line.changeType === "insert"
                 ? "rgba(34, 197, 94, 0.1)"
-                : line.change_type === "delete"
+                : line.changeType === "delete"
                   ? "rgba(239, 68, 68, 0.1)"
                   : "transparent";
             const signColor =
-              line.change_type === "insert"
+              line.changeType === "insert"
                 ? "#22c55e"
-                : line.change_type === "delete"
+                : line.changeType === "delete"
                   ? "#ef4444"
                   : undefined;
             const sign =
-              line.change_type === "insert"
+              line.changeType === "insert"
                 ? "+"
-                : line.change_type === "delete"
+                : line.changeType === "delete"
                   ? "-"
                   : " ";
 
             return (
               <div key={li} className="flex whitespace-pre min-h-[20px]" style={{ background: bgColor }}>
                 <span className="inline-block w-11 shrink-0 text-right pr-2 text-[11px] select-none" style={{ color: "var(--app-text-tertiary)" }}>
-                  {line.old_line_no ?? ""}
+                  {line.oldLineNo ?? ""}
                 </span>
                 <span className="inline-block w-11 shrink-0 text-right pr-2 text-[11px] select-none" style={{ color: "var(--app-text-tertiary)" }}>
-                  {line.new_line_no ?? ""}
+                  {line.newLineNo ?? ""}
                 </span>
                 <span className="inline-block w-4 shrink-0 text-center select-none font-semibold" style={{ color: signColor }}>
                   {sign}
                 </span>
                 <span className="flex-1 pr-2 whitespace-pre-wrap break-all">
-                  {line.inline_changes && line.inline_changes.length > 0 ? (
+                  {line.inlineChanges && line.inlineChanges.length > 0 ? (
                     getSegments(line).map((seg, si) => (
                       <span
                         key={si}
@@ -150,7 +150,7 @@ export default memo(function DiffView({ diff, loading }: DiffViewProps) {
                           seg.changed
                             ? {
                                 background:
-                                  line.change_type === "insert"
+                                  line.changeType === "insert"
                                     ? "rgba(34, 197, 94, 0.3)"
                                     : "rgba(239, 68, 68, 0.3)",
                                 borderRadius: 2,
