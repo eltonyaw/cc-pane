@@ -97,6 +97,10 @@ impl WorktreeService {
         name: &str,
         branch: Option<&str>,
     ) -> Result<String, String> {
+        // 验证 worktree 名称安全性
+        crate::utils::validate_worktree_name(name)
+            .map_err(|e| e.to_string())?;
+
         if !self.is_git_repo(project_path) {
             return Err("不是 Git 仓库".to_string());
         }

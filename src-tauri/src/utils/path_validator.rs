@@ -49,6 +49,29 @@ pub fn validate_relative_path(project_path: &str, file_path: &str) -> Result<(),
     Ok(())
 }
 
+/// 验证 Worktree 名称安全性
+///
+/// 拒绝包含路径穿越或路径分隔符的名称
+pub fn validate_worktree_name(name: &str) -> Result<(), AppError> {
+    if name.is_empty() {
+        return Err(AppError::from("Worktree 名称不能为空"));
+    }
+
+    if name.contains("..") || name.contains('/') || name.contains('\\') {
+        return Err(AppError::from(format!(
+            "Worktree 名称包含非法字符: {}",
+            name
+        )));
+    }
+
+    // 拒绝纯空白名称
+    if name.trim().is_empty() {
+        return Err(AppError::from("Worktree 名称不能为空白"));
+    }
+
+    Ok(())
+}
+
 /// 验证 Git URL 安全性
 ///
 /// 只允许 HTTP/HTTPS 协议，防止 file:// 等危险协议
@@ -149,5 +172,31 @@ mod tests {
     #[test]
     fn test_git_url_rejects_empty() {
         assert!(validate_git_url("").is_err());
+    }
+
+    #[test]
+    fn test_valid_worktree_name() {
+        assert!(validate_worktree_name("feature-auth").is_ok());
+        assert!(validate_worktree_name("hotfix-123").is_ok());
+        assert!(validate_worktree_name("my_branch").is_ok());
+    }
+
+    #[test]
+    fn test_worktree_name_rejects_traversal() {
+        assert!(validate_worktree_name("..").is_err());
+        assert!(validate_worktree_name("../secret").is_err());
+        assert!(validate_worktree_name("foo/../bar").is_err());
+    }
+
+    #[test]
+    fn test_worktree_name_rejects_path_separators() {
+        assert!(validate_worktree_name("foo/bar").is_err());
+        assert!(validate_worktree_name("foo\\bar").is_err());
+    }
+
+    #[test]
+    fn test_worktree_name_rejects_empty() {
+        assert!(validate_worktree_name("").is_err());
+        assert!(validate_worktree_name("  ").is_err());
     }
 }
