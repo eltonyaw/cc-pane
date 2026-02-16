@@ -1,8 +1,8 @@
 mod commands;
-mod models;
-mod repository;
-mod services;
-mod utils;
+pub mod models;
+pub mod repository;
+pub mod services;
+pub mod utils;
 
 use commands::{
     add_launch_history, add_project, clear_launch_history, create_terminal_session,

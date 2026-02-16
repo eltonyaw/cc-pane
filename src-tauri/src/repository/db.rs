@@ -58,6 +58,17 @@ impl Database {
         Ok(())
     }
 
+    /// 创建内存数据库（用于测试）
+    #[cfg(test)]
+    pub fn new_in_memory() -> Result<Self, AppError> {
+        let conn = Connection::open_in_memory()
+            .map_err(|e| AppError::from(format!("无法创建内存数据库: {}", e)))?;
+        Self::init_tables(&conn)?;
+        Ok(Self {
+            conn: Mutex::new(conn),
+        })
+    }
+
     /// 获取数据库连接的可变引用
     pub fn connection(&self) -> Result<MutexGuard<'_, Connection>, AppError> {
         self.conn

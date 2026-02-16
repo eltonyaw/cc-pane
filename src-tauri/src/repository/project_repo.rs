@@ -129,3 +129,142 @@ impl ProjectRepository {
         Ok(affected > 0)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::Project;
+    use crate::repository::Database;
+
+    fn setup() -> ProjectRepository {
+        let db = Arc::new(Database::new_in_memory().expect("创建内存数据库失败"));
+        ProjectRepository::new(db)
+    }
+
+    fn make_project(path: &str) -> Project {
+        Project {
+            id: uuid::Uuid::new_v4().to_string(),
+            name: path.split('/').last().unwrap_or("test").to_string(),
+            path: path.to_string(),
+            created_at: chrono::Utc::now().to_rfc3339(),
+            alias: None,
+        }
+    }
+
+    #[test]
+    fn test_insert_and_list() {
+        let repo = setup();
+        let p1 = make_project("/tmp/project-a");
+        let p2 = make_project("/tmp/project-b");
+
+        repo.insert(&p1).unwrap();
+        repo.insert(&p2).unwrap();
+
+        let projects = repo.list().unwrap();
+        assert_eq!(projects.len(), 2);
+    }
+
+    #[test]
+    fn test_insert_duplicate_path_fails() {
+        let repo = setup();
+        let p1 = make_project("/tmp/same-path");
+        let mut p2 = make_project("/tmp/same-path");
+        p2.id = uuid::Uuid::new_v4().to_string();
+
+        repo.insert(&p1).unwrap();
+        let result = repo.insert(&p2);
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("项目已存在"));
+    }
+
+    #[test]
+    fn test_get_existing() {
+        let repo = setup();
+        let project = make_project("/tmp/get-test");
+        repo.insert(&project).unwrap();
+
+        let found = repo.get(&project.id).unwrap();
+
+        assert!(found.is_some());
+        let found = found.unwrap();
+        assert_eq!(found.id, project.id);
+        assert_eq!(found.name, project.name);
+        assert_eq!(found.path, project.path);
+    }
+
+    #[test]
+    fn test_get_non_existing() {
+        let repo = setup();
+
+        let found = repo.get("non-existent-id").unwrap();
+
+        assert!(found.is_none());
+    }
+
+    #[test]
+    fn test_delete() {
+        let repo = setup();
+        let project = make_project("/tmp/delete-test");
+        repo.insert(&project).unwrap();
+
+        let deleted = repo.delete(&project.id).unwrap();
+        assert!(deleted);
+
+        let found = repo.get(&project.id).unwrap();
+        assert!(found.is_none());
+    }
+
+    #[test]
+    fn test_delete_non_existing() {
+        let repo = setup();
+
+        let deleted = repo.delete("non-existent-id").unwrap();
+
+        assert!(!deleted);
+    }
+
+    #[test]
+    fn test_update_name() {
+        let repo = setup();
+        let project = make_project("/tmp/rename-test");
+        repo.insert(&project).unwrap();
+
+        let updated = repo.update_name(&project.id, "新名称").unwrap();
+        assert!(updated);
+
+        let found = repo.get(&project.id).unwrap().unwrap();
+        assert_eq!(found.name, "新名称");
+    }
+
+    #[test]
+    fn test_exists_by_path() {
+        let repo = setup();
+        let project = make_project("/tmp/exists-test");
+        repo.insert(&project).unwrap();
+
+        assert!(repo.exists_by_path("/tmp/exists-test").unwrap());
+        assert!(!repo.exists_by_path("/tmp/not-exists").unwrap());
+    }
+
+    #[test]
+    fn test_update_alias() {
+        let repo = setup();
+        let project = make_project("/tmp/alias-test");
+        repo.insert(&project).unwrap();
+
+        // 设置别名
+        let updated = repo.update_alias(&project.id, Some("我的项目")).unwrap();
+        assert!(updated);
+
+        let found = repo.get(&project.id).unwrap().unwrap();
+        assert_eq!(found.alias, Some("我的项目".to_string()));
+
+        // 清除别名
+        let updated = repo.update_alias(&project.id, None).unwrap();
+        assert!(updated);
+
+        let found = repo.get(&project.id).unwrap().unwrap();
+        assert!(found.alias.is_none());
+    }
+}

@@ -88,3 +88,170 @@ impl ProjectService {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::repository::{Database, ProjectRepository};
+    use std::sync::Arc;
+
+    fn setup() -> (ProjectService, std::path::PathBuf) {
+        let db = Arc::new(Database::new_in_memory().expect("创建内存数据库失败"));
+        let repo = Arc::new(ProjectRepository::new(db));
+        let service = ProjectService::new(repo);
+
+        // 创建临时目录用于测试
+        let temp_dir = std::env::temp_dir().join(format!("cc-panes-test-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&temp_dir).expect("创建临时目录失败");
+
+        (service, temp_dir)
+    }
+
+    fn cleanup(temp_dir: &std::path::Path) {
+        let _ = std::fs::remove_dir_all(temp_dir);
+    }
+
+    #[test]
+    fn test_add_project_success() {
+        let (service, temp_dir) = setup();
+        let path = temp_dir.to_str().unwrap();
+
+        let result = service.add_project(path);
+        assert!(result.is_ok());
+
+        let project = result.unwrap();
+        assert_eq!(project.path, path);
+        assert!(!project.id.is_empty());
+
+        cleanup(&temp_dir);
+    }
+
+    #[test]
+    fn test_add_project_path_not_exists() {
+        let (service, temp_dir) = setup();
+        let path = temp_dir.join("non-existent").to_str().unwrap().to_string();
+
+        let result = service.add_project(&path);
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "路径不存在");
+
+        cleanup(&temp_dir);
+    }
+
+    #[test]
+    fn test_add_project_not_directory() {
+        let (service, temp_dir) = setup();
+        let file_path = temp_dir.join("test.txt");
+        std::fs::write(&file_path, "test").unwrap();
+
+        let result = service.add_project(file_path.to_str().unwrap());
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "路径不是目录");
+
+        cleanup(&temp_dir);
+    }
+
+    #[test]
+    fn test_add_project_duplicate() {
+        let (service, temp_dir) = setup();
+        let path = temp_dir.to_str().unwrap();
+
+        service.add_project(path).unwrap();
+        let result = service.add_project(path);
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "项目已存在");
+
+        cleanup(&temp_dir);
+    }
+
+    #[test]
+    fn test_list_projects() {
+        let (service, temp_dir) = setup();
+        let dir1 = temp_dir.join("p1");
+        let dir2 = temp_dir.join("p2");
+        std::fs::create_dir_all(&dir1).unwrap();
+        std::fs::create_dir_all(&dir2).unwrap();
+
+        service.add_project(dir1.to_str().unwrap()).unwrap();
+        service.add_project(dir2.to_str().unwrap()).unwrap();
+
+        let projects = service.list_projects().unwrap();
+        assert_eq!(projects.len(), 2);
+
+        cleanup(&temp_dir);
+    }
+
+    #[test]
+    fn test_remove_project() {
+        let (service, temp_dir) = setup();
+        let project = service.add_project(temp_dir.to_str().unwrap()).unwrap();
+
+        let result = service.remove_project(&project.id);
+        assert!(result.is_ok());
+
+        let projects = service.list_projects().unwrap();
+        assert!(projects.is_empty());
+
+        cleanup(&temp_dir);
+    }
+
+    #[test]
+    fn test_remove_non_existent() {
+        let (service, temp_dir) = setup();
+
+        let result = service.remove_project("non-existent");
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "项目不存在");
+
+        cleanup(&temp_dir);
+    }
+
+    #[test]
+    fn test_update_project_name() {
+        let (service, temp_dir) = setup();
+        let project = service.add_project(temp_dir.to_str().unwrap()).unwrap();
+
+        let result = service.update_project_name(&project.id, "新名称");
+        assert!(result.is_ok());
+
+        let found = service.get_project(&project.id).unwrap().unwrap();
+        assert_eq!(found.name, "新名称");
+
+        cleanup(&temp_dir);
+    }
+
+    #[test]
+    fn test_update_project_name_empty() {
+        let (service, temp_dir) = setup();
+        let project = service.add_project(temp_dir.to_str().unwrap()).unwrap();
+
+        let result = service.update_project_name(&project.id, "  ");
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "项目名称不能为空");
+
+        cleanup(&temp_dir);
+    }
+
+    #[test]
+    fn test_update_project_alias() {
+        let (service, temp_dir) = setup();
+        let project = service.add_project(temp_dir.to_str().unwrap()).unwrap();
+
+        // 设置别名
+        service.update_project_alias(&project.id, Some("别名")).unwrap();
+        let found = service.get_project(&project.id).unwrap().unwrap();
+        assert_eq!(found.alias, Some("别名".to_string()));
+
+        // 空字符串别名应被视为 None
+        service.update_project_alias(&project.id, Some("  ")).unwrap();
+        let found = service.get_project(&project.id).unwrap().unwrap();
+        assert!(found.alias.is_none());
+
+        cleanup(&temp_dir);
+    }
+}
