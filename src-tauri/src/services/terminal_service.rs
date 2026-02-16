@@ -199,20 +199,29 @@ impl TerminalService {
 
                         // 更新状态
                         {
-                            let mut ts = read_last_output.lock().unwrap();
+                            let mut ts = read_last_output.lock().unwrap_or_else(|e| {
+                                eprintln!("last_output_at 锁被污染，使用降级值");
+                                e.into_inner()
+                            });
                             *ts = Instant::now();
                         }
 
                         // 推断状态
                         let new_status = infer_status(&data);
                         {
-                            let mut s = read_status.lock().unwrap();
+                            let mut s = read_status.lock().unwrap_or_else(|e| {
+                                eprintln!("read_status 锁被污染，使用降级值");
+                                e.into_inner()
+                            });
                             *s = new_status;
                         }
 
                         // 检测状态变更并触发通知
                         {
-                            let mut prev = prev_status.lock().unwrap();
+                            let mut prev = prev_status.lock().unwrap_or_else(|e| {
+                                eprintln!("prev_status 锁被污染，使用降级值");
+                                e.into_inner()
+                            });
                             if *prev != SessionStatus::WaitingInput
                                 && new_status == SessionStatus::WaitingInput
                             {
@@ -267,7 +276,10 @@ impl TerminalService {
 
             // 标记为已退出
             {
-                let mut s = exit_status.lock().unwrap();
+                let mut s = exit_status.lock().unwrap_or_else(|e| {
+                    eprintln!("exit_status 锁被污染，使用降级值");
+                    e.into_inner()
+                });
                 *s = SessionStatus::Exited;
             }
 
@@ -364,6 +376,17 @@ impl TerminalService {
             Ok(())
         } else {
             Err(anyhow!("Session not found: {}", session_id))
+        }
+    }
+
+    /// 清理所有终端会话（应用退出时调用）
+    pub fn cleanup_all(&self) {
+        if let Ok(mut sessions) = self.sessions.lock() {
+            let count = sessions.len();
+            sessions.clear();
+            if count > 0 {
+                eprintln!("[cleanup] 已清理 {} 个终端会话", count);
+            }
         }
     }
 }

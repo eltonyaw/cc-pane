@@ -48,9 +48,17 @@ use commands::{
     // Provider 命令
     list_providers, get_provider, get_default_provider,
     add_provider, update_provider, remove_provider, set_default_provider,
+    // Task 命令
+    create_task_board, list_task_boards, get_task_board, delete_task_board, rename_task_board,
+    create_task, list_tasks, get_task, update_task, delete_task,
+    update_task_status, move_task, update_task_session,
+    // MCP 配置命令
+    list_mcp_servers, get_mcp_server, upsert_mcp_server, remove_mcp_server,
+    // Skill 命令
+    list_skills, get_skill, save_skill, delete_skill, copy_skill,
 };
-use repository::{Database, ProjectRepository, HistoryRepository};
-use services::{ProjectService, TerminalService, HistoryService, HooksService, JournalService, WorktreeService, WorkspaceService, SettingsService, ProviderService, NotificationService, LaunchHistoryService};
+use repository::{Database, ProjectRepository, HistoryRepository, TaskRepository};
+use services::{ProjectService, TerminalService, HistoryService, HooksService, JournalService, WorktreeService, WorkspaceService, SettingsService, ProviderService, NotificationService, LaunchHistoryService, TaskService, McpConfigService, SkillService};
 use utils::AppPaths;
 use std::sync::Arc;
 
@@ -72,10 +80,20 @@ pub fn run() {
     let app_paths = Arc::new(AppPaths::new(data_dir));
 
     // 3. 各服务用 app_paths 初始化
-    let db = Arc::new(Database::new(app_paths.database_path()).expect("数据库初始化失败"));
+    let db = match Database::new(app_paths.database_path()) {
+        Ok(db) => Arc::new(db),
+        Err(e) => {
+            eprintln!("数据库初始化失败: {}，尝试内存数据库降级", e);
+            Arc::new(Database::new_fallback().unwrap_or_else(|e2| {
+                panic!("数据库初始化完全失败（含降级）: {}", e2);
+            }))
+        }
+    };
     let project_repo = Arc::new(ProjectRepository::new(db.clone()));
-    let history_repo = Arc::new(HistoryRepository::new(db));
+    let history_repo = Arc::new(HistoryRepository::new(db.clone()));
+    let task_repo = Arc::new(TaskRepository::new(db));
     let launch_history_service = Arc::new(LaunchHistoryService::new(history_repo));
+    let task_service = Arc::new(TaskService::new(task_repo));
     let project_service = Arc::new(ProjectService::new(project_repo));
     let history_service = Arc::new(HistoryService::new());
     let hooks_service = Arc::new(HooksService::new());
@@ -84,12 +102,18 @@ pub fn run() {
     let workspace_service = Arc::new(WorkspaceService::new(app_paths.workspaces_dir()));
     let provider_service = Arc::new(ProviderService::new(app_paths.providers_path()));
     let notification_service = Arc::new(NotificationService::new());
+    let mcp_config_service = Arc::new(McpConfigService::new());
+    let skill_service = Arc::new(SkillService::new());
     let terminal_service = Arc::new(TerminalService::new(
         settings_service.clone(),
         provider_service.clone(),
         notification_service.clone(),
         app_paths.clone(),
     ));
+
+    // 保存引用用于退出时清理
+    let terminal_cleanup = terminal_service.clone();
+    let history_cleanup = history_service.clone();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -107,6 +131,9 @@ pub fn run() {
         .manage(settings_service)
         .manage(provider_service)
         .manage(notification_service)
+        .manage(task_service)
+        .manage(mcp_config_service)
+        .manage(skill_service)
         .setup(|app| {
             // ---- 系统托盘 ----
             let show = MenuItem::with_id(app, "show", "显示窗口", true, None::<&str>)?;
@@ -275,8 +302,40 @@ pub fn run() {
             add_provider,
             update_provider,
             remove_provider,
-            set_default_provider
+            set_default_provider,
+            // Task 命令
+            create_task_board,
+            list_task_boards,
+            get_task_board,
+            delete_task_board,
+            rename_task_board,
+            create_task,
+            list_tasks,
+            get_task,
+            update_task,
+            delete_task,
+            update_task_status,
+            move_task,
+            update_task_session,
+            // MCP 配置命令
+            list_mcp_servers,
+            get_mcp_server,
+            upsert_mcp_server,
+            remove_mcp_server,
+            // Skill 命令
+            list_skills,
+            get_skill,
+            save_skill,
+            delete_skill,
+            copy_skill
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(move |_app_handle, event| {
+            if let tauri::RunEvent::Exit = event {
+                eprintln!("[cleanup] 应用退出，清理资源...");
+                terminal_cleanup.cleanup_all();
+                history_cleanup.stop_all_watching();
+            }
+        });
 }

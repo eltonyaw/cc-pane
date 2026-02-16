@@ -48,6 +48,12 @@ const DEBOUNCE_MS: u64 = 500;
 /// 分支切换后的静默窗口（秒），抑制 checkout 产生的文件事件
 const CHECKOUT_SILENCE_SECS: u64 = 3;
 
+impl Default for HistoryService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HistoryService {
     pub fn new() -> Self {
         let repos: RepoMap = Arc::new(Mutex::new(HashMap::new()));
@@ -428,6 +434,16 @@ impl HistoryService {
         Ok(())
     }
 
+    /// 停止所有文件监控（应用退出时调用）
+    pub fn stop_all_watching(&self) {
+        let mut watchers = self.watchers.lock().unwrap_or_else(|e| e.into_inner());
+        let count = watchers.len();
+        watchers.clear();
+        if count > 0 {
+            eprintln!("[cleanup] 已停止 {} 个文件监控器", count);
+        }
+    }
+
     /// 分发文件事件到队列，检测分支切换
     fn dispatch_event(
         project_path: &Path,
@@ -500,13 +516,11 @@ impl HistoryService {
 
     /// 简单的 glob 模式匹配
     fn matches_pattern(path: &str, pattern: &str) -> bool {
-        if pattern.ends_with("/**") {
-            let prefix = &pattern[..pattern.len() - 3];
+        if let Some(prefix) = pattern.strip_suffix("/**") {
             // 精确匹配目录前缀，避免 "target2/foo" 误匹配 "target/**"
             return path == prefix || path.starts_with(&format!("{}/", prefix));
         }
-        if pattern.starts_with("*.") {
-            let ext = &pattern[1..];
+        if let Some(ext) = pattern.strip_prefix("*.") {
             return path.ends_with(ext);
         }
         path == pattern || path.starts_with(&format!("{}/", pattern))
