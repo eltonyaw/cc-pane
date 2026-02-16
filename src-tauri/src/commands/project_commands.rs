@@ -1,6 +1,6 @@
 use crate::models::Project;
 use crate::services::ProjectService;
-use crate::utils::AppResult;
+use crate::utils::{AppResult, validate_path};
 use std::sync::Arc;
 use tauri::State;
 
@@ -13,6 +13,7 @@ pub fn list_projects(service: State<'_, Arc<ProjectService>>) -> AppResult<Vec<P
 
 #[tauri::command]
 pub fn add_project(path: String, service: State<'_, Arc<ProjectService>>) -> AppResult<Project> {
+    validate_path(&path)?;
     Ok(service.add_project(&path)?)
 }
 

@@ -1,6 +1,6 @@
 use crate::models::{ScannedRepo, Workspace, WorkspaceProject};
 use crate::services::WorkspaceService;
-use crate::utils::AppResult;
+use crate::utils::{AppResult, validate_path};
 use std::path::Path;
 use std::sync::Arc;
 use tauri::State;
@@ -95,5 +95,6 @@ pub fn update_workspace_provider(
 pub fn scan_workspace_directory(
     root_path: String,
 ) -> AppResult<Vec<ScannedRepo>> {
+    validate_path(&root_path)?;
     Ok(WorkspaceService::scan_directory(Path::new(&root_path))?)
 }

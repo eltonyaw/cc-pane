@@ -1,5 +1,5 @@
 use crate::services::HooksService;
-use crate::utils::AppResult;
+use crate::utils::{AppResult, validate_path};
 use std::sync::Arc;
 use tauri::State;
 
@@ -10,6 +10,7 @@ pub fn is_hooks_enabled(
     project_path: String,
     service: State<'_, Arc<HooksService>>,
 ) -> AppResult<bool> {
+    validate_path(&project_path)?;
     Ok(service.is_hooks_enabled(&project_path)?)
 }
 
@@ -18,6 +19,7 @@ pub fn enable_hooks(
     project_path: String,
     service: State<'_, Arc<HooksService>>,
 ) -> AppResult<()> {
+    validate_path(&project_path)?;
     Ok(service.enable_hooks(&project_path)?)
 }
 
@@ -26,6 +28,7 @@ pub fn disable_hooks(
     project_path: String,
     service: State<'_, Arc<HooksService>>,
 ) -> AppResult<()> {
+    validate_path(&project_path)?;
     Ok(service.disable_hooks(&project_path)?)
 }
 
@@ -34,6 +37,7 @@ pub fn get_workflow(
     project_path: String,
     service: State<'_, Arc<HooksService>>,
 ) -> AppResult<String> {
+    validate_path(&project_path)?;
     Ok(service.get_workflow(&project_path)?)
 }
 
@@ -43,6 +47,7 @@ pub fn save_workflow(
     content: String,
     service: State<'_, Arc<HooksService>>,
 ) -> AppResult<()> {
+    validate_path(&project_path)?;
     Ok(service.save_workflow(&project_path, &content)?)
 }
 
@@ -51,5 +56,6 @@ pub fn init_ccpanes(
     project_path: String,
     service: State<'_, Arc<HooksService>>,
 ) -> AppResult<()> {
+    validate_path(&project_path)?;
     Ok(service.init_ccpanes(&project_path)?)
 }

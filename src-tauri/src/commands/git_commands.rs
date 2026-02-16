@@ -1,5 +1,5 @@
 use crate::services::HistoryService;
-use crate::utils::AppResult;
+use crate::utils::{AppResult, validate_git_url, validate_path};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::process::{Command, Stdio};
@@ -9,6 +9,7 @@ use tauri::{AppHandle, Emitter, State};
 /// 获取项目的 Git 分支名
 #[tauri::command]
 pub fn get_git_branch(path: String) -> Option<String> {
+    validate_path(&path).ok()?;
     let project_path = Path::new(&path);
     if !project_path.exists() {
         return None;
@@ -37,6 +38,7 @@ pub fn get_git_branch(path: String) -> Option<String> {
 /// 获取项目的 Git 状态（是否有未提交的更改）
 #[tauri::command]
 pub fn get_git_status(path: String) -> Option<bool> {
+    validate_path(&path).ok()?;
     let project_path = Path::new(&path);
     if !project_path.exists() {
         return None;
@@ -58,6 +60,7 @@ pub fn get_git_status(path: String) -> Option<bool> {
 
 /// 执行 Git 命令并返回结果
 fn run_git_command(path: &str, args: &[&str]) -> AppResult<String> {
+    validate_path(path)?;
     let project_path = Path::new(path);
     if !project_path.exists() {
         return Err("路径不存在".into());
@@ -163,6 +166,8 @@ pub async fn git_clone(
     app_handle: AppHandle,
     request: GitCloneRequest,
 ) -> AppResult<String> {
+    validate_git_url(&request.url)?;
+    validate_path(&request.target_dir)?;
     let clone_path = Path::new(&request.target_dir).join(&request.folder_name);
 
     if clone_path.exists() {
@@ -201,8 +206,8 @@ pub async fn git_clone(
     // 后台线程读取 stderr 发送进度
     let stderr = child.stderr.take();
     let handle = app_handle.clone();
-    let progress_thread = if let Some(mut stderr) = stderr {
-        Some(std::thread::spawn(move || {
+    let progress_thread = stderr.map(|mut stderr| {
+        std::thread::spawn(move || {
             use std::io::Read;
             let mut buf = Vec::new();
             let mut byte = [0u8; 1];
@@ -231,10 +236,8 @@ pub async fn git_clone(
                 let progress = parse_git_progress(&line);
                 let _ = handle.emit("git-clone-progress", progress);
             }
-        }))
-    } else {
-        None
-    };
+        })
+    });
 
     // 等待完成
     let status = child.wait()?;

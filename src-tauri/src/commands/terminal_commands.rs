@@ -1,6 +1,6 @@
 use crate::models::{CreateSessionRequest, ResizeRequest};
 use crate::services::{TerminalService, SessionStatusInfo};
-use crate::utils::AppResult;
+use crate::utils::{AppResult, validate_path};
 use std::sync::Arc;
 use tauri::{AppHandle, State};
 
@@ -11,6 +11,7 @@ pub fn create_terminal_session(
     service: State<'_, Arc<TerminalService>>,
     request: CreateSessionRequest,
 ) -> AppResult<String> {
+    validate_path(&request.project_path)?;
     Ok(service.create_session(
         app_handle,
         &request.project_path,
