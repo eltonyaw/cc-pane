@@ -55,6 +55,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       cursorStyle: "block",
       cursorBlink: true,
       scrollback: 1000,
+      shell: null,
+      disableConptySanitize: null,
     },
     shortcuts: {
       bindings: {

@@ -30,7 +30,7 @@ impl WorktreeService {
     /// 列出所有 worktree
     pub fn list_worktrees(&self, project_path: &str) -> Result<Vec<WorktreeInfo>, String> {
         if !self.is_git_repo(project_path) {
-            return Err("不是 Git 仓库".to_string());
+            return Err("Not a Git repository".to_string());
         }
 
         let output = output_with_timeout(
@@ -39,11 +39,11 @@ impl WorktreeService {
                 .current_dir(project_path),
             GIT_LOCAL_TIMEOUT,
         )
-        .map_err(|e| format!("执行 git 命令失败: {}", e))?;
+        .map_err(|e| format!("Failed to execute git command: {}", e))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(format!("git worktree list 失败: {}", stderr));
+            return Err(format!("git worktree list failed: {}", stderr));
         }
 
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -105,22 +105,22 @@ impl WorktreeService {
             .map_err(|e| e.to_string())?;
 
         if !self.is_git_repo(project_path) {
-            return Err("不是 Git 仓库".to_string());
+            return Err("Not a Git repository".to_string());
         }
 
         let project_dir = PathBuf::from(project_path);
         let parent_dir = project_dir.parent()
-            .ok_or("无法获取父目录")?;
+            .ok_or("Failed to get parent directory")?;
 
         let project_name = project_dir.file_name()
             .and_then(|n| n.to_str())
-            .ok_or("无法获取项目名称")?;
+            .ok_or("Failed to get project name")?;
 
         // 分组目录模式: {repo}-worktrees/{name}/
         let worktrees_dir = parent_dir.join(format!("{}-worktrees", project_name));
         if !worktrees_dir.exists() {
             std::fs::create_dir_all(&worktrees_dir)
-                .map_err(|e| format!("创建 worktrees 目录失败: {}", e))?;
+                .map_err(|e| format!("Failed to create worktrees directory: {}", e))?;
         }
         let worktree_path = worktrees_dir.join(name);
 
@@ -143,11 +143,11 @@ impl WorktreeService {
                 .current_dir(project_path),
             GIT_LOCAL_TIMEOUT,
         )
-        .map_err(|e| format!("执行 git 命令失败: {}", e))?;
+        .map_err(|e| format!("Failed to execute git command: {}", e))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(format!("创建 worktree 失败: {}", stderr));
+            return Err(format!("Failed to create worktree: {}", stderr));
         }
 
         Ok(worktree_path_str)
@@ -160,7 +160,7 @@ impl WorktreeService {
         worktree_path: &str,
     ) -> Result<(), String> {
         if !self.is_git_repo(project_path) {
-            return Err("不是 Git 仓库".to_string());
+            return Err("Not a Git repository".to_string());
         }
 
         let output = output_with_timeout(
@@ -169,11 +169,11 @@ impl WorktreeService {
                 .current_dir(project_path),
             GIT_LOCAL_TIMEOUT,
         )
-        .map_err(|e| format!("执行 git 命令失败: {}", e))?;
+        .map_err(|e| format!("Failed to execute git command: {}", e))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(format!("删除 worktree 失败: {}", stderr));
+            return Err(format!("Failed to remove worktree: {}", stderr));
         }
 
         Ok(())

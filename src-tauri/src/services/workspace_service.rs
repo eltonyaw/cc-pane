@@ -14,7 +14,7 @@ impl WorkspaceService {
         // 确保目录存在
         if !base_dir.exists() {
             if let Err(e) = fs::create_dir_all(&base_dir) {
-                eprintln!("警告: 无法创建 workspaces 目录 {}: {}", base_dir.display(), e);
+                eprintln!("Warning: failed to create workspaces directory {}: {}", base_dir.display(), e);
             }
         }
 
@@ -40,10 +40,10 @@ impl WorkspaceService {
         }
 
         let entries = fs::read_dir(&self.base_dir)
-            .map_err(|e| format!("无法读取 workspaces 目录: {}", e))?;
+            .map_err(|e| format!("Failed to read workspaces directory: {}", e))?;
 
         for entry in entries {
-            let entry = entry.map_err(|e| format!("读取目录项失败: {}", e))?;
+            let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
             let path = entry.path();
 
             if path.is_dir() {
@@ -51,7 +51,7 @@ impl WorkspaceService {
                 if json_path.exists() {
                     match self.read_workspace_json(&json_path) {
                         Ok(ws) => workspaces.push(ws),
-                        Err(e) => eprintln!("读取 workspace.json 失败: {}", e),
+                        Err(e) => eprintln!("Failed to read workspace.json: {}", e),
                     }
                 }
             }
@@ -67,17 +67,17 @@ impl WorkspaceService {
         let ws_dir = self.workspace_dir(name);
 
         if ws_dir.exists() {
-            return Err(format!("工作空间 '{}' 已存在", name));
+            return Err(format!("Workspace '{}' already exists", name));
         }
 
         // 创建目录
         fs::create_dir_all(&ws_dir)
-            .map_err(|e| format!("创建工作空间目录失败: {}", e))?;
+            .map_err(|e| format!("Failed to create workspace directory: {}", e))?;
 
         // 创建 .ccpanes 子目录
         let ccpanes_dir = ws_dir.join(".ccpanes");
         fs::create_dir_all(&ccpanes_dir)
-            .map_err(|e| format!("创建 .ccpanes 目录失败: {}", e))?;
+            .map_err(|e| format!("Failed to create .ccpanes directory: {}", e))?;
 
         // 创建 workspace.json
         let workspace = Workspace::new(name.to_string());
@@ -91,7 +91,7 @@ impl WorkspaceService {
         let json_path = self.workspace_json_path(name);
 
         if !json_path.exists() {
-            return Err(format!("工作空间 '{}' 不存在", name));
+            return Err(format!("Workspace '{}' does not exist", name));
         }
 
         self.read_workspace_json(&json_path)
@@ -103,16 +103,16 @@ impl WorkspaceService {
         let new_dir = self.workspace_dir(new_name);
 
         if !old_dir.exists() {
-            return Err(format!("工作空间 '{}' 不存在", old_name));
+            return Err(format!("Workspace '{}' does not exist", old_name));
         }
 
         if new_dir.exists() {
-            return Err(format!("工作空间 '{}' 已存在", new_name));
+            return Err(format!("Workspace '{}' already exists", new_name));
         }
 
         // 重命名目录
         fs::rename(&old_dir, &new_dir)
-            .map_err(|e| format!("重命名目录失败: {}", e))?;
+            .map_err(|e| format!("Failed to rename directory: {}", e))?;
 
         // 更新 workspace.json 中的 name
         let mut workspace = self.get_workspace(new_name)?;
@@ -127,11 +127,11 @@ impl WorkspaceService {
         let ws_dir = self.workspace_dir(name);
 
         if !ws_dir.exists() {
-            return Err(format!("工作空间 '{}' 不存在", name));
+            return Err(format!("Workspace '{}' does not exist", name));
         }
 
         fs::remove_dir_all(&ws_dir)
-            .map_err(|e| format!("删除工作空间失败: {}", e))?;
+            .map_err(|e| format!("Failed to delete workspace: {}", e))?;
 
         Ok(())
     }
@@ -142,7 +142,7 @@ impl WorkspaceService {
 
         // 检查路径是否已存在
         if workspace.projects.iter().any(|p| p.path == path) {
-            return Err(format!("项目路径 '{}' 已存在于工作空间中", path));
+            return Err(format!("Project path '{}' already exists in workspace", path));
         }
 
         let project = WorkspaceProject::new(path.to_string());
@@ -160,7 +160,7 @@ impl WorkspaceService {
         workspace.projects.retain(|p| p.id != project_id);
 
         if workspace.projects.len() == original_len {
-            return Err(format!("项目 '{}' 不存在", project_id));
+            return Err(format!("Project '{}' does not exist", project_id));
         }
 
         self.write_workspace_json(workspace_name, &workspace)?;
@@ -180,7 +180,7 @@ impl WorkspaceService {
             .projects
             .iter_mut()
             .find(|p| p.id == project_id)
-            .ok_or_else(|| format!("项目 '{}' 不存在", project_id))?;
+            .ok_or_else(|| format!("Project '{}' does not exist", project_id))?;
 
         project.alias = alias.map(|s| s.to_string());
         self.write_workspace_json(workspace_name, &workspace)?;
@@ -216,19 +216,19 @@ impl WorkspaceService {
 
     fn read_workspace_json(&self, path: &PathBuf) -> Result<Workspace, String> {
         let content = fs::read_to_string(path)
-            .map_err(|e| format!("读取文件失败: {}", e))?;
+            .map_err(|e| format!("Failed to read file: {}", e))?;
 
         serde_json::from_str(&content)
-            .map_err(|e| format!("解析 JSON 失败: {}", e))
+            .map_err(|e| format!("Failed to parse JSON: {}", e))
     }
 
     fn write_workspace_json(&self, name: &str, workspace: &Workspace) -> Result<(), String> {
         let json_path = self.workspace_json_path(name);
         let content = serde_json::to_string_pretty(workspace)
-            .map_err(|e| format!("序列化 JSON 失败: {}", e))?;
+            .map_err(|e| format!("Failed to serialize JSON: {}", e))?;
 
         fs::write(&json_path, content)
-            .map_err(|e| format!("写入文件失败: {}", e))?;
+            .map_err(|e| format!("Failed to write file: {}", e))?;
 
         Ok(())
     }
@@ -238,11 +238,11 @@ impl WorkspaceService {
     /// 扫描指定目录，发现 Git 仓库及其 worktree，按主仓库分组返回
     pub fn scan_directory(root: &Path) -> Result<Vec<ScannedRepo>, String> {
         if !root.is_dir() {
-            return Err(format!("路径不存在或不是目录: {}", root.display()));
+            return Err(format!("Path does not exist or is not a directory: {}", root.display()));
         }
 
         let entries = fs::read_dir(root)
-            .map_err(|e| format!("无法读取目录: {}", e))?;
+            .map_err(|e| format!("Failed to read directory: {}", e))?;
 
         // 收集所有子目录的 git 信息
         // key = 主仓库路径, value = ScannedRepo

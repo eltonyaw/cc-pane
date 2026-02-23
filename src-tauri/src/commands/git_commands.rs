@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::sync::Arc;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, EventTarget, State};
 
 /// 获取项目的 Git 分支名
 #[tauri::command]
@@ -68,7 +68,7 @@ fn run_git_command(path: &str, args: &[&str]) -> AppResult<String> {
     validate_path(path)?;
     let project_path = Path::new(path);
     if !project_path.exists() {
-        return Err("路径不存在".into());
+        return Err("Path does not exist".into());
     }
 
     let output = output_with_timeout(
@@ -82,7 +82,7 @@ fn run_git_command(path: &str, args: &[&str]) -> AppResult<String> {
     let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
     if output.status.success() {
-        Ok(if stdout.is_empty() { "操作成功".to_string() } else { stdout })
+        Ok(if stdout.is_empty() { "Operation successful".to_string() } else { stdout })
     } else {
         Err(if stderr.is_empty() { stdout } else { stderr }.into())
     }
@@ -178,7 +178,7 @@ pub async fn git_clone(
     let clone_path = Path::new(&request.target_dir).join(&request.folder_name);
 
     if clone_path.exists() {
-        return Err("目标目录已存在".into());
+        return Err("Target directory already exists".into());
     }
 
     // 构建 git clone 参数
@@ -227,7 +227,7 @@ pub async fn git_clone(
                             if !buf.is_empty() {
                                 let line = String::from_utf8_lossy(&buf).to_string();
                                 let progress = parse_git_progress(&line);
-                                let _ = handle.emit("git-clone-progress", progress);
+                                let _ = handle.emit_to(EventTarget::webview("main"), "git-clone-progress", progress);
                                 buf.clear();
                             }
                         } else {
@@ -241,7 +241,7 @@ pub async fn git_clone(
             if !buf.is_empty() {
                 let line = String::from_utf8_lossy(&buf).to_string();
                 let progress = parse_git_progress(&line);
-                let _ = handle.emit("git-clone-progress", progress);
+                let _ = handle.emit_to(EventTarget::webview("main"), "git-clone-progress", progress);
             }
         })
     });
@@ -255,7 +255,7 @@ pub async fn git_clone(
             None if start.elapsed() > clone_timeout => {
                 let _ = child.kill();
                 let _ = child.wait();
-                return Err("git clone 超时（已等待 5 分钟）".into());
+                return Err("git clone timed out (waited 5 minutes)".into());
             }
             None => std::thread::sleep(std::time::Duration::from_millis(200)),
         }
@@ -267,7 +267,7 @@ pub async fn git_clone(
     }
 
     if !status.success() {
-        return Err("git clone 失败，请检查 URL 和认证信息".into());
+        return Err("git clone failed, please check URL and credentials".into());
     }
 
     Ok(clone_path_str)

@@ -50,3 +50,16 @@ __*.ps1
 
 # 测试工作空间数据
 test-workspace/
+
+# 测试覆盖率输出
+coverage/
+
+# 测试构建目标
+target-test/
+
+# TypeScript 构建缓存
+*.tsbuildinfo
+
+# Vite 编译产物
+vite.config.d.ts
+vite.config.js

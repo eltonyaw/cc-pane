@@ -234,31 +234,38 @@
   }
 }
 
-/* allotment 分隔条样式 */
-.split-container .sash-container .sash {
+/* SplitView 分隔条样式 */
+.splitview-sash {
+  flex-shrink: 0;
   background: var(--app-glass-border);
-  transition: background 0.2s;
+  transition: background 0.15s;
 }
 
-.split-container .sash-container .sash:hover {
+.splitview-sash:hover {
   background: var(--app-accent);
   box-shadow: 0 0 8px color-mix(in srgb, var(--app-accent) 40%, transparent);
 }
 
-.split-container .sash-container .sash.vertical {
-  width: 1px !important;
+.splitview-sash.vertical {
+  width: 1px;
+  min-width: 1px;
   cursor: col-resize;
 }
 
-.split-container .sash-container .sash.vertical:hover {
-  width: 3px !important;
+.splitview-sash.vertical:hover {
+  width: 3px;
+  min-width: 3px;
+  margin: 0 -1px;
 }
 
-.split-container .sash-container .sash.horizontal {
-  height: 1px !important;
+.splitview-sash.horizontal {
+  height: 1px;
+  min-height: 1px;
   cursor: row-resize;
 }
 
-.split-container .sash-container .sash.horizontal:hover {
-  height: 3px !important;
+.splitview-sash.horizontal:hover {
+  height: 3px;
+  min-height: 3px;
+  margin: -1px 0;
 }

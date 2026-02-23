@@ -17,6 +17,15 @@ vi.mock("@tauri-apps/api/event", () => ({
   emit: vi.fn(),
 }));
 
+vi.mock("@tauri-apps/api/webview", () => {
+  const webview = {
+    listen: vi.fn(() => Promise.resolve(() => {})),
+  };
+  return {
+    getCurrentWebview: vi.fn(() => webview),
+  };
+});
+
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: vi.fn(),
   save: vi.fn(),

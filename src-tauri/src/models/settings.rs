@@ -48,6 +48,12 @@ pub struct TerminalSettings {
     pub cursor_style: String, // "block" | "underline" | "bar"
     pub cursor_blink: bool,
     pub scrollback: u32,
+    /// 用户选择的 Shell ID（如 "pwsh", "cmd", "git-bash"），None 表示自动探测
+    #[serde(default)]
+    pub shell: Option<String>,
+    /// 禁用 ConPTY 输出 sanitize（默认 true，即禁用 sanitize，因为 dwFlags=0 已解决根本问题）
+    #[serde(default)]
+    pub disable_conpty_sanitize: Option<bool>,
 }
 
 /// 快捷键设置
@@ -123,6 +129,8 @@ impl Default for TerminalSettings {
             cursor_style: "block".to_string(),
             cursor_blink: true,
             scrollback: 1000,
+            shell: None,
+            disable_conpty_sanitize: None,
         }
     }
 }

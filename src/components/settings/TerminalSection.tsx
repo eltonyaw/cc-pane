@@ -8,6 +8,7 @@ interface TerminalSectionProps {
 }
 
 export default function TerminalSection({ value, onChange }: TerminalSectionProps) {
+
   function update<K extends keyof TerminalSettings>(key: K, v: TerminalSettings[K]) {
     onChange({ ...value, [key]: v });
   }
@@ -68,13 +69,24 @@ export default function TerminalSection({ value, onChange }: TerminalSectionProp
         </div>
       </div>
 
-      <div className="flex flex-col gap-1 w-40">
-        <Label>回滚行数</Label>
-        <Input
-          type="number"
-          value={value.scrollback}
-          onChange={(e) => update("scrollback", Number(e.target.value))}
-        />
+      <div className="flex gap-2 items-end">
+        <div className="flex flex-col gap-1 w-40">
+          <Label>回滚行数</Label>
+          <Input
+            type="number"
+            value={value.scrollback}
+            onChange={(e) => update("scrollback", Number(e.target.value))}
+          />
+        </div>
+
+        <div className="flex flex-col gap-1 flex-1">
+          <Label>Shell</Label>
+          <Input
+            value={value.shell ?? ""}
+            onChange={(e) => update("shell", e.target.value || null)}
+            placeholder="留空则自动检测"
+          />
+        </div>
       </div>
     </div>
   );

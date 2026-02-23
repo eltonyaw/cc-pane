@@ -31,6 +31,17 @@ export interface TerminalSettings {
   cursorStyle: string;
   cursorBlink: boolean;
   scrollback: number;
+  /** 用户选择的 Shell ID（如 "pwsh", "cmd"），null 表示自动探测 */
+  shell: string | null;
+  /** 禁用 ConPTY 输出 sanitize（默认 true） */
+  disableConptySanitize: boolean | null;
+}
+
+/** Shell 信息 */
+export interface ShellInfo {
+  id: string;
+  name: string;
+  path: string;
 }
 
 /** 快捷键设置 */

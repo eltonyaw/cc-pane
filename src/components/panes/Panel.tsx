@@ -1,7 +1,8 @@
-import { useMemo, useEffect, useCallback, useRef } from "react";
+import { useMemo, useEffect, useCallback, useRef, memo } from "react";
 import { X, Terminal, Command } from "lucide-react";
 import type { Panel as PanelType } from "@/types";
 import { usePanesStore, useFullscreenStore, useThemeStore } from "@/stores";
+import { terminalService } from "@/services";
 import TabBar from "./TabBar";
 import TerminalView from "./TerminalView";
 import type { TerminalViewHandle } from "./TerminalView";
@@ -10,7 +11,7 @@ interface PanelProps {
   pane: PanelType;
 }
 
-export default function Panel({ pane }: PanelProps) {
+export default memo(function Panel({ pane }: PanelProps) {
   const activePaneId = usePanesStore((s) => s.activePaneId);
   const selectTab = usePanesStore((s) => s.selectTab);
   const closeTab = usePanesStore((s) => s.closeTab);
@@ -57,8 +58,14 @@ export default function Panel({ pane }: PanelProps) {
   );
 
   const handleCloseTab = useCallback(
-    (tabId: string) => closeTab(pane.id, tabId),
-    [pane.id, closeTab]
+    (tabId: string) => {
+      const tab = pane.tabs.find((t) => t.id === tabId);
+      if (tab?.sessionId) {
+        terminalService.killSession(tab.sessionId).catch(console.error);
+      }
+      closeTab(pane.id, tabId);
+    },
+    [pane.id, pane.tabs, closeTab]
   );
 
   const handleTogglePin = useCallback(
@@ -117,7 +124,7 @@ export default function Panel({ pane }: PanelProps) {
 
   return (
     <div
-      className={`flex flex-col h-full overflow-hidden transition-all duration-300 backdrop-blur-2xl ${
+      className={`flex flex-col h-full overflow-hidden transition-shadow duration-300 backdrop-blur-2xl ${
         isFullscreenPanel ? "fixed inset-0 z-[9999] rounded-none" : "rounded-xl"
       } ${
         isDark
@@ -170,7 +177,6 @@ export default function Panel({ pane }: PanelProps) {
                 sessionId={tab.sessionId}
                 projectPath={tab.projectPath}
                 isActive={tab.id === pane.activeTabId && isActivePane}
-                resumeId={tab.resumeId}
                 workspaceName={tab.workspaceName}
                 providerId={tab.providerId}
                 onSessionCreated={(sid) => handleSessionCreated(tab.id, sid)}
@@ -243,4 +249,4 @@ export default function Panel({ pane }: PanelProps) {
       )}
     </div>
   );
-}
+});

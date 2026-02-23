@@ -34,17 +34,17 @@ pub fn test_proxy(
     let settings = service.get_settings();
     let proxy = &settings.proxy;
     if !proxy.enabled || proxy.host.is_empty() {
-        return Err("代理未启用或未配置".into());
+        return Err("Proxy is not enabled or not configured".into());
     }
 
     let addr = format!("{}:{}", proxy.host, proxy.port);
     let socket_addr: std::net::SocketAddr = addr
         .parse()
-        .map_err(|e| format!("地址解析失败: {}", e))?;
+        .map_err(|e| format!("Failed to parse address: {}", e))?;
 
     TcpStream::connect_timeout(&socket_addr, Duration::from_secs(5))
         .map(|_| true)
-        .map_err(|e| format!("无法连接到代理 {}: {}", addr, e).into())
+        .map_err(|e| format!("Failed to connect to proxy {}: {}", addr, e).into())
 }
 
 /// 数据目录信息
@@ -95,7 +95,7 @@ pub fn migrate_data_dir(
     let target_str = target.to_string_lossy();
     for prefix in forbidden_prefixes {
         if target_str.starts_with(prefix) {
-            return Err(format!("不允许迁移到系统目录: {}", prefix).into());
+            return Err(format!("Migration to system directory is not allowed: {}", prefix).into());
         }
     }
 
@@ -109,7 +109,7 @@ pub fn migrate_data_dir(
             let target_canonical = std::fs::canonicalize(target).unwrap_or_else(|_| target.to_path_buf());
             let source_canonical = std::fs::canonicalize(source).unwrap_or_else(|_| source.to_path_buf());
             if target_canonical != source_canonical {
-                return Err("目标目录必须为空".into());
+                return Err("Target directory must be empty".into());
             }
         }
     }
@@ -118,17 +118,17 @@ pub fn migrate_data_dir(
     let target_canonical = std::fs::canonicalize(target).unwrap_or_else(|_| target.to_path_buf());
     let source_canonical = std::fs::canonicalize(source).unwrap_or_else(|_| source.to_path_buf());
     if target_canonical == source_canonical {
-        return Err("目标目录与当前数据目录相同".into());
+        return Err("Target directory is the same as current data directory".into());
     }
 
     // 创建目标目录
     std::fs::create_dir_all(target)
-        .map_err(|e| format!("无法创建目标目录: {}", e))?;
+        .map_err(|e| format!("Failed to create target directory: {}", e))?;
 
     // 验证可写
     let test_file = target.join(".write_test");
     std::fs::write(&test_file, "test")
-        .map_err(|e| format!("目标目录不可写: {}", e))?;
+        .map_err(|e| format!("Target directory is not writable: {}", e))?;
     let _ = std::fs::remove_file(&test_file);
 
     // 复制 data.db
@@ -160,7 +160,7 @@ pub fn migrate_data_dir(
         let dst_count = count_files(&dst_ws);
         if src_count != dst_count {
             return Err(format!(
-                "workspaces 目录文件数量不一致 (源: {} 个, 目标: {} 个)",
+                "Workspaces directory file count mismatch (source: {}, target: {})",
                 src_count, dst_count
             ).into());
         }
@@ -181,7 +181,7 @@ pub fn migrate_data_dir(
         Some(target_dir)
     };
     settings_service.update_settings(current_settings)
-        .map_err(|e| format!("更新配置失败: {}", e))?;
+        .map_err(|e| format!("Failed to update config: {}", e))?;
 
     Ok(())
 }
@@ -191,7 +191,7 @@ fn copy_if_exists(src: &Path, dst: &Path) -> AppResult<()> {
     if src.exists() {
         let name = crate::utils::sanitize_path_display(src);
         std::fs::copy(src, dst)
-            .map_err(|e| format!("复制 {} 失败: {}", name, e))?;
+            .map_err(|e| format!("Failed to copy {}: {}", name, e))?;
     }
     Ok(())
 }
@@ -200,21 +200,21 @@ fn copy_if_exists(src: &Path, dst: &Path) -> AppResult<()> {
 fn copy_dir_recursive(src: &Path, dst: &Path) -> AppResult<()> {
     let dst_name = crate::utils::sanitize_path_display(dst);
     std::fs::create_dir_all(dst)
-        .map_err(|e| format!("创建目录 {} 失败: {}", dst_name, e))?;
+        .map_err(|e| format!("Failed to create directory {}: {}", dst_name, e))?;
 
     let src_name = crate::utils::sanitize_path_display(src);
     let entries = std::fs::read_dir(src)
-        .map_err(|e| format!("读取目录 {} 失败: {}", src_name, e))?;
+        .map_err(|e| format!("Failed to read directory {}: {}", src_name, e))?;
 
     for entry in entries {
-        let entry = entry.map_err(|e| format!("读取目录项失败: {}", e))?;
+        let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
         let src_path = entry.path();
         let dst_path = dst.join(entry.file_name());
         let file_name = entry.file_name().to_string_lossy().to_string();
 
         // 使用 symlink_metadata 检查，跳过符号链接
         let meta = std::fs::symlink_metadata(&src_path)
-            .map_err(|e| format!("读取元数据失败 {}: {}", file_name, e))?;
+            .map_err(|e| format!("Failed to read metadata {}: {}", file_name, e))?;
         if meta.is_symlink() {
             continue;
         }
@@ -223,7 +223,7 @@ fn copy_dir_recursive(src: &Path, dst: &Path) -> AppResult<()> {
             copy_dir_recursive(&src_path, &dst_path)?;
         } else if meta.is_file() {
             std::fs::copy(&src_path, &dst_path)
-                .map_err(|e| format!("复制 {} 失败: {}", file_name, e))?;
+                .map_err(|e| format!("Failed to copy {}: {}", file_name, e))?;
         }
     }
 
@@ -253,17 +253,17 @@ fn verify_copy(src: &Path, dst: &Path) -> AppResult<()> {
     }
     let name = crate::utils::sanitize_path_display(src);
     if !dst.exists() {
-        return Err(format!("目标文件不存在: {}", name).into());
+        return Err(format!("Target file not found: {}", name).into());
     }
 
     let src_size = std::fs::metadata(src)
-        .map_err(|e| format!("读取源文件元数据失败: {}", e))?.len();
+        .map_err(|e| format!("Failed to read source file metadata: {}", e))?.len();
     let dst_size = std::fs::metadata(dst)
-        .map_err(|e| format!("读取目标文件元数据失败: {}", e))?.len();
+        .map_err(|e| format!("Failed to read target file metadata: {}", e))?.len();
 
     if src_size != dst_size {
         return Err(format!(
-            "文件大小不一致: {} (源: {} 字节, 目标: {} 字节)",
+            "File size mismatch: {} (source: {} bytes, target: {} bytes)",
             name, src_size, dst_size
         ).into());
     }

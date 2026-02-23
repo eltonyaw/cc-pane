@@ -22,10 +22,10 @@ impl AppPaths {
 
         // 确保目录存在
         if let Err(e) = std::fs::create_dir_all(&config_dir) {
-            eprintln!("警告: 无法创建配置目录 {}: {}", config_dir.display(), e);
+            eprintln!("Warning: failed to create config directory {}: {}", config_dir.display(), e);
         }
         if let Err(e) = std::fs::create_dir_all(&data_dir) {
-            eprintln!("警告: 无法创建数据目录 {}: {}", data_dir.display(), e);
+            eprintln!("Warning: failed to create data directory {}: {}", data_dir.display(), e);
         }
 
         Self {

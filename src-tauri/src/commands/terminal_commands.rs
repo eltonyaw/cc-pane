@@ -1,8 +1,10 @@
 use crate::models::{CreateSessionRequest, ResizeRequest};
-use crate::services::{TerminalService, SessionStatusInfo};
+use crate::services::{TerminalService, SessionStatusInfo, ShellInfo};
+use crate::utils::error::AppError;
 use crate::utils::{AppResult, validate_path};
 use std::sync::Arc;
 use tauri::{AppHandle, State};
+use crate::services::terminal_service;
 
 /// 创建终端会话
 #[tauri::command]
@@ -41,13 +43,17 @@ pub fn resize_terminal(
     Ok(service.resize(&request.session_id, request.cols, request.rows)?)
 }
 
-/// 关闭终端会话
+/// 关闭终端会话（async + spawn_blocking 防止阻塞主线程）
 #[tauri::command]
-pub fn kill_terminal(
+pub async fn kill_terminal(
     service: State<'_, Arc<TerminalService>>,
     session_id: String,
 ) -> AppResult<()> {
-    Ok(service.kill(&session_id)?)
+    let svc = service.inner().clone();
+    let result = tauri::async_runtime::spawn_blocking(move || svc.kill(&session_id))
+        .await
+        .map_err(|e| AppError::from(e.to_string()))?;
+    Ok(result?)
 }
 
 /// 获取所有终端状态
@@ -56,4 +62,18 @@ pub fn get_all_terminal_status(
     service: State<'_, Arc<TerminalService>>,
 ) -> AppResult<Vec<SessionStatusInfo>> {
     Ok(service.get_all_status()?)
+}
+
+/// 获取可用 Shell 列表
+#[tauri::command]
+pub fn get_available_shells(
+    service: State<'_, Arc<TerminalService>>,
+) -> AppResult<Vec<ShellInfo>> {
+    Ok(service.get_available_shells())
+}
+
+/// 获取 Windows Build Number（用于 xterm.js windowsPty 配置）
+#[tauri::command]
+pub fn get_windows_build_number() -> AppResult<u32> {
+    Ok(terminal_service::get_windows_build_number())
 }

@@ -118,6 +118,7 @@ interface PanesState {
   togglePinTab: (paneId: string, tabId: string) => void;
   renameTab: (paneId: string, tabId: string, newTitle: string) => void;
   reorderTabs: (paneId: string, fromIndex: number, toIndex: number) => void;
+  moveTab: (fromPaneId: string, toPaneId: string, tabId: string, toIndex?: number) => void;
   selectTab: (paneId: string, tabId: string) => void;
   setActivePane: (paneId: string) => void;
   updateTabSession: (paneId: string, tabId: string, sessionId: string) => void;
@@ -215,25 +216,16 @@ export const usePanesStore = create<PanesState>()(
         parent.sizes.splice(index, 1);
 
         const total = parent.sizes.reduce((a, b) => a + b, 0);
-        parent.sizes = parent.sizes.map((s) => (s / total) * 100);
-
-        if (parent.children.length === 1) {
-          const remainingChild = parent.children[0];
-          const grandParentResult = findParent(state.rootPane, parent.id);
-
-          if (grandParentResult?.parent === null) {
-            state.rootPane = remainingChild;
-          } else if (grandParentResult?.parent) {
-            const grandIndex = grandParentResult.index;
-            grandParentResult.parent.children[grandIndex] = remainingChild;
-          }
-        }
+        parent.sizes = total > 0
+          ? parent.sizes.map((s) => (s / total) * 100)
+          : parent.sizes.map(() => 100 / parent.sizes.length);
 
         if (parent.children.length > 0) {
           const newIndex = Math.min(index, parent.children.length - 1);
           const nextPane = parent.children[newIndex];
-          if (nextPane.type === "panel") {
-            state.activePaneId = nextPane.id;
+          const panels = collectPanels(nextPane);
+          if (panels.length > 0) {
+            state.activePaneId = panels[0].id;
           }
         }
       });
@@ -289,8 +281,38 @@ export const usePanesStore = create<PanesState>()(
       });
     },
 
+    moveTab: (fromPaneId, toPaneId, tabId, toIndex?) => {
+      set((state) => {
+        const fromPane = findPane(state.rootPane, fromPaneId);
+        const toPane = findPane(state.rootPane, toPaneId);
+        if (fromPane?.type !== "panel" || toPane?.type !== "panel") return;
+
+        const tabIndex = fromPane.tabs.findIndex((t) => t.id === tabId);
+        if (tabIndex === -1) return;
+
+        const [tab] = fromPane.tabs.splice(tabIndex, 1);
+        const insertAt =
+          toIndex !== undefined && toIndex >= 0
+            ? Math.min(toIndex, toPane.tabs.length)
+            : toPane.tabs.length;
+        toPane.tabs.splice(insertAt, 0, tab);
+
+        toPane.activeTabId = tab.id;
+        if (fromPane.tabs.length > 0) {
+          const newIdx = Math.min(tabIndex, fromPane.tabs.length - 1);
+          fromPane.activeTabId = fromPane.tabs[newIdx].id;
+        }
+        state.activePaneId = toPaneId;
+      });
+
+      // 源面板空了则关闭（closePane 内部有独立 set，不可嵌套）
+      const fromPane = findPane(get().rootPane, fromPaneId);
+      if (fromPane?.type === "panel" && fromPane.tabs.length === 0) {
+        get().closePane(fromPaneId);
+      }
+    },
+
     closeTab: (paneId, tabId) => {
-      // 先检查是否需要 closePane（单 tab 面板）
       const snapshot = get();
       const snapPane = findPane(snapshot.rootPane, paneId);
       if (snapPane?.type !== "panel") return;
@@ -302,7 +324,6 @@ export const usePanesStore = create<PanesState>()(
         return;
       }
 
-      // 多 tab 场景，在单个 set 中完成所有操作
       set((state) => {
         const p = findPane(state.rootPane, paneId);
         if (p?.type !== "panel") return;
@@ -310,8 +331,6 @@ export const usePanesStore = create<PanesState>()(
         const idx = p.tabs.findIndex((t) => t.id === tabId);
         if (idx === -1) return;
         if (p.tabs[idx].pinned) return;
-
-        // 二次检查：如果在 set 时 tab 数已变为 1，不做操作（留给下次调用）
         if (p.tabs.length <= 1) return;
 
         p.tabs.splice(idx, 1);

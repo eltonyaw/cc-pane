@@ -111,7 +111,7 @@ impl JournalService {
         }
 
         let content = fs::read_to_string(&index_path)
-            .map_err(|e| format!("读取 index.md 失败: {}", e))?;
+            .map_err(|e| format!("Failed to read index.md: {}", e))?;
 
         for line in content.lines() {
             if line.contains("Total Sessions") {
@@ -129,7 +129,7 @@ impl JournalService {
     /// 生成会话内容
     fn generate_session_content(&self, session_num: u32, summary: &SessionSummary) -> String {
         let commits_table = if summary.commits.is_empty() {
-            "(无提交 - 规划会话)".to_string()
+            "(no commits - planning session)".to_string()
         } else {
             let mut table = "| Hash | Message |\n|------|---------|".to_string();
             for commit in &summary.commits {
@@ -176,7 +176,7 @@ impl JournalService {
 "#, num, num - 1, MAX_LINES, today);
 
         fs::write(&new_file, content)
-            .map_err(|e| format!("创建 journal 文件失败: {}", e))?;
+            .map_err(|e| format!("Failed to create journal file: {}", e))?;
 
         Ok(new_file)
     }
@@ -187,11 +187,11 @@ impl JournalService {
         let today = Local::now().format("%Y-%m-%d").to_string();
 
         if !index_path.exists() {
-            return Err("index.md 不存在".to_string());
+            return Err("index.md does not exist".to_string());
         }
 
         let content = fs::read_to_string(&index_path)
-            .map_err(|e| format!("读取 index.md 失败: {}", e))?;
+            .map_err(|e| format!("Failed to read index.md: {}", e))?;
 
         let commits_display = if commits.is_empty() {
             "-".to_string()
@@ -259,7 +259,7 @@ impl JournalService {
         }
 
         fs::write(&index_path, new_content)
-            .map_err(|e| format!("写入 index.md 失败: {}", e))?;
+            .map_err(|e| format!("Failed to write index.md: {}", e))?;
 
         Ok(())
     }
@@ -270,7 +270,7 @@ impl JournalService {
 
         // 确保目录存在
         fs::create_dir_all(&journal_dir)
-            .map_err(|e| format!("创建 journal 目录失败: {}", e))?;
+            .map_err(|e| format!("Failed to create journal directory: {}", e))?;
 
         // 获取当前 journal 信息
         let (current_file, current_num, current_lines) = self.get_latest_journal_info(project_path)?;
@@ -295,11 +295,11 @@ impl JournalService {
             .create(true)
             .append(true)
             .open(&target_file)
-            .map_err(|e| format!("打开 journal 文件失败: {}", e))?;
+            .map_err(|e| format!("Failed to open journal file: {}", e))?;
 
         use std::io::Write;
         file.write_all(session_content.as_bytes())
-            .map_err(|e| format!("写入 journal 失败: {}", e))?;
+            .map_err(|e| format!("Failed to write journal: {}", e))?;
 
         // 更新索引
         let active_file = format!("journal-{}.md", target_num);
@@ -330,7 +330,7 @@ impl JournalService {
         }
 
         fs::read_to_string(&file)
-            .map_err(|e| format!("读取 journal 失败: {}", e))
+            .map_err(|e| format!("Failed to read journal: {}", e))
     }
 }
 

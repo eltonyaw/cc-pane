@@ -31,14 +31,14 @@ impl HooksService {
 
         // 创建 .claude/hooks 目录
         fs::create_dir_all(&hooks_dir)
-            .map_err(|e| format!("创建 hooks 目录失败: {}", e))?;
+            .map_err(|e| format!("Failed to create hooks directory: {}", e))?;
 
         // 生成 hook 脚本
         let script_content = self.generate_hook_script(project_path);
         let script_path = hooks_dir.join("ccpanes-inject.py");
 
         fs::write(&script_path, script_content)
-            .map_err(|e| format!("写入 hook 脚本失败: {}", e))?;
+            .map_err(|e| format!("Failed to write hook script: {}", e))?;
 
         Ok(())
     }
@@ -49,7 +49,7 @@ impl HooksService {
 
         if script_path.exists() {
             fs::remove_file(&script_path)
-                .map_err(|e| format!("删除 hook 脚本失败: {}", e))?;
+                .map_err(|e| format!("Failed to delete hook script: {}", e))?;
         }
 
         Ok(())
@@ -187,11 +187,11 @@ if __name__ == "__main__":
         let workflow_path = Self::get_ccpanes_dir(project_path).join("workflow.md");
 
         if !workflow_path.exists() {
-            return Err("workflow.md 不存在".to_string());
+            return Err("workflow.md does not exist".to_string());
         }
 
         fs::read_to_string(&workflow_path)
-            .map_err(|e| format!("读取 workflow.md 失败: {}", e))
+            .map_err(|e| format!("Failed to read workflow.md: {}", e))
     }
 
     /// 保存 workflow.md 内容
@@ -200,12 +200,12 @@ if __name__ == "__main__":
 
         // 确保目录存在
         fs::create_dir_all(&ccpanes_dir)
-            .map_err(|e| format!("创建 .ccpanes 目录失败: {}", e))?;
+            .map_err(|e| format!("Failed to create .ccpanes directory: {}", e))?;
 
         let workflow_path = ccpanes_dir.join("workflow.md");
 
         fs::write(&workflow_path, content)
-            .map_err(|e| format!("保存 workflow.md 失败: {}", e))
+            .map_err(|e| format!("Failed to save workflow.md: {}", e))
     }
 
     /// 初始化项目的 .ccpanes 目录
@@ -215,14 +215,14 @@ if __name__ == "__main__":
 
         // 创建目录
         fs::create_dir_all(&journal_dir)
-            .map_err(|e| format!("创建目录失败: {}", e))?;
+            .map_err(|e| format!("Failed to create directory: {}", e))?;
 
         // 创建默认 workflow.md（如果不存在）
         let workflow_path = ccpanes_dir.join("workflow.md");
         if !workflow_path.exists() {
             let default_workflow = self.get_default_workflow();
             fs::write(&workflow_path, default_workflow)
-                .map_err(|e| format!("创建 workflow.md 失败: {}", e))?;
+                .map_err(|e| format!("Failed to create workflow.md: {}", e))?;
         }
 
         // 创建 journal index（如果不存在）
@@ -230,7 +230,7 @@ if __name__ == "__main__":
         if !index_path.exists() {
             let default_index = self.get_default_journal_index();
             fs::write(&index_path, default_index)
-                .map_err(|e| format!("创建 journal/index.md 失败: {}", e))?;
+                .map_err(|e| format!("Failed to create journal/index.md: {}", e))?;
         }
 
         // 创建初始 journal 文件（如果不存在）
@@ -238,7 +238,7 @@ if __name__ == "__main__":
         if !journal_path.exists() {
             let default_journal = self.get_default_journal();
             fs::write(&journal_path, default_journal)
-                .map_err(|e| format!("创建 journal-0.md 失败: {}", e))?;
+                .map_err(|e| format!("Failed to create journal-0.md: {}", e))?;
         }
 
         Ok(())

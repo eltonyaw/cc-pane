@@ -1,0 +1,22 @@
+{
+  "ready": "准备就绪",
+  "selectProject": "从左侧选择一个项目以启动终端",
+  "backToTerminal": "返回终端",
+  "todoLabel": "Todo - {{label}}",
+  "todoListDefault": "TodoList",
+  "splitRight": "右切",
+  "splitDown": "下切",
+  "closePanel": "关闭面板",
+  "renameTab": "重命名",
+  "unpinTab": "取消固定",
+  "pinTab": "固定标签",
+  "minimizeTab": "最小化",
+  "closeTab": "关闭标签",
+  "restoreTab": "恢复标签",
+  "restoreClosedTabs": "恢复已关闭标签 ({{count}})",
+  "clickToRestore": "点击恢复",
+  "searchPlaceholder": "搜索...",
+  "searchPrev": "上一个 (Shift+Enter)",
+  "searchNext": "下一个 (Enter)",
+  "searchClose": "关闭 (Esc)"
+}

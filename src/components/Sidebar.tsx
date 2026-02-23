@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useWorkspacesStore, useProvidersStore, useThemeStore } from "@/stores";
 import { historyService, type LaunchRecord } from "@/services";
+import { waitForTauri } from "@/utils";
 import WindowControls from "@/components/sidebar/WindowControls";
 import WorkspaceTree from "@/components/sidebar/WorkspaceTree";
 import RecentLaunches from "@/components/sidebar/RecentLaunches";
@@ -49,9 +50,12 @@ export default function Sidebar({
   }
 
   useEffect(() => {
-    loadWorkspaces();
-    fetchHistory();
-    loadProviders();
+    waitForTauri().then((ready) => {
+      if (!ready) return;
+      loadWorkspaces();
+      fetchHistory();
+      loadProviders();
+    });
   }, [loadWorkspaces, fetchHistory, loadProviders]);
 
   return (

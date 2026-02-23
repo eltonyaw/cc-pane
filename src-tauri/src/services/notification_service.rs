@@ -40,11 +40,11 @@ impl NotificationService {
         }
 
         let body = if exit_code == 0 {
-            format!("会话已正常退出")
+            format!("Session exited normally")
         } else {
-            format!("会话已退出（退出码: {}）", exit_code)
+            format!("Session exited (exit code: {})", exit_code)
         };
-        self.send_notification(app, "会话已退出", &body);
+        self.send_notification(app, "Session Exited", &body);
     }
 
     /// 等待输入通知
@@ -65,7 +65,7 @@ impl NotificationService {
             return;
         }
 
-        self.send_notification(app, "需要你的操作", "终端正在等待输入确认");
+        self.send_notification(app, "Action Required", "Terminal is waiting for input confirmation");
     }
 
     /// 检查窗口是否处于聚焦状态

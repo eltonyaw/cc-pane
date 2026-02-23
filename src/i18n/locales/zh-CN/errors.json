@@ -1,0 +1,89 @@
+{
+  "UNKNOWN_ERROR": "未知错误",
+  "PATH_EMPTY": "路径不能为空",
+  "PATH_TRAVERSAL": "路径包含非法的 '..' 分量: {{path}}",
+  "PATH_NOT_ABSOLUTE": "路径必须是绝对路径: {{path}}",
+  "PATH_NOT_FOUND": "路径不存在",
+  "PATH_ALREADY_EXISTS": "路径已存在: {{path}}",
+  "PATH_NOT_DIRECTORY": "路径不是目录",
+
+  "WORKSPACE_NOT_FOUND": "工作空间 '{{name}}' 不存在",
+  "WORKSPACE_NAME_EMPTY": "工作空间名称不能为空",
+  "WORKSPACE_NAME_DUPLICATE": "工作空间 '{{name}}' 已存在",
+  "WORKSPACE_NAME_INVALID": "工作空间名称包含非法字符: {{name}}",
+  "WORKSPACE_NAME_BLANK": "工作空间名称不能为空白",
+
+  "PROJECT_NOT_FOUND": "项目不存在",
+  "PROJECT_PATH_EMPTY": "项目路径不能为空",
+  "PROJECT_ALREADY_EXISTS": "项目已存在: {{path}}",
+  "PROJECT_NAME_EMPTY": "项目名称不能为空",
+
+  "WORKTREE_NAME_EMPTY": "Worktree 名称不能为空",
+  "WORKTREE_NAME_INVALID": "Worktree 名称包含非法字符: {{name}}",
+  "WORKTREE_NAME_BLANK": "Worktree 名称不能为空白",
+  "WORKTREE_NOT_GIT_REPO": "不是 Git 仓库",
+  "WORKTREE_LIST_FAILED": "git worktree list 失败: {{detail}}",
+  "WORKTREE_CREATE_FAILED": "创建 Worktree 失败: {{detail}}",
+  "WORKTREE_DELETE_FAILED": "删除 Worktree 失败: {{detail}}",
+
+  "GIT_URL_EMPTY": "Git URL 不能为空",
+  "GIT_URL_INVALID_PROTOCOL": "仅支持 HTTP/HTTPS 协议的 Git URL: {{url}}",
+  "GIT_URL_INVALID_CHARS": "Git URL 包含非法字符",
+  "GIT_CLONE_TIMEOUT": "git clone 超时（已等待 5 分钟）",
+  "GIT_CLONE_FAILED": "git clone 失败，请检查 URL 和认证信息",
+  "GIT_OPERATION_SUCCESS": "操作成功",
+
+  "COMMAND_EMPTY": "命令不能为空",
+  "COMMAND_INVALID_CHARS": "命令包含非法字符 '{{char}}': {{command}}",
+  "COMMAND_SUBSHELL_INJECTION": "命令包含非法的子命令替换: {{command}}",
+
+  "MCP_NAME_EMPTY": "MCP Server 名称不能为空",
+  "MCP_NAME_TOO_LONG": "MCP Server 名称不能超过 100 字符",
+  "MCP_NAME_INVALID": "MCP Server 名称包含非法字符: {{name}}",
+
+  "TODO_TITLE_EMPTY": "标题不能为空",
+  "TODO_NOT_FOUND": "Todo {{id}} 不存在",
+  "TODO_SCOPE_REF_REQUIRED": "workspace/project 作用域需要指定 scopeRef",
+  "SUBTASK_TITLE_EMPTY": "子任务标题不能为空",
+  "SUBTASK_NOT_FOUND": "子任务 {{id}} 不存在",
+
+  "SKILL_NAME_EMPTY": "Skill 名称不能为空",
+  "SKILL_NAME_PATH_SEPARATOR": "Skill 名称不能包含路径分隔符",
+  "SKILL_NAME_DOT_PREFIX": "Skill 名称不能以 '.' 开头",
+
+  "PROXY_NOT_ENABLED": "代理未启用或未配置",
+  "MIGRATION_SYSTEM_DIR": "不允许迁移到系统目录: {{path}}",
+  "MIGRATION_DIR_NOT_EMPTY": "目标目录必须为空",
+  "MIGRATION_SAME_DIR": "目标目录与当前数据目录相同",
+  "MIGRATION_FILE_NOT_FOUND": "目标文件不存在: {{name}}",
+  "MIGRATION_FILE_MISMATCH": "迁移后文件大小不匹配: {{name}}（期望 {{expected}}，实际 {{actual}}）",
+
+  "CLAUDE_HOME_DIR_ERROR": "无法获取用户主目录",
+  "CLAUDE_PATH_NOT_IN_SCOPE": "路径不在 .claude 目录范围内",
+  "CLAUDE_INVALID_EXTENSION": "只允许操作 .jsonl 文件",
+  "CLAUDE_FILE_READ_FAILED": "读取文件失败: {{detail}}",
+
+  "JOURNAL_INDEX_NOT_FOUND": "index.md 不存在",
+  "HOOKS_WORKFLOW_NOT_FOUND": "workflow.md 不存在",
+
+  "NOTIFICATION_UNKNOWN_ERROR": "未知错误",
+  "NOTIFICATION_UNSUPPORTED_CHANNEL": "不支持的渠道类型: {{type}}",
+
+  "SORT_LIST_EMPTY": "排序列表不能为空",
+  "SORT_LIST_DUPLICATE": "排序列表包含重复的工作空间名称: {{name}}",
+
+  "SCAN_DIR_NOT_FOUND": "路径不存在或不是目录: {{path}}",
+
+  "PROVIDER_NOT_FOUND": "Provider 不存在",
+  "PROVIDER_NAME_EMPTY": "Provider 名称不能为空",
+  "DB_ERROR": "数据库错误: {{detail}}",
+  "IO_ERROR": "IO 错误: {{detail}}",
+  "GIT_ERROR": "Git 操作失败: {{detail}}",
+  "PTY_ERROR": "终端错误: {{detail}}",
+  "SETTINGS_LOAD_FAILED": "加载设置失败",
+  "SETTINGS_SAVE_FAILED": "保存设置失败",
+  "TERMINAL_NOT_FOUND": "终端会话不存在",
+
+  "FILE_TRAVERSAL": "文件路径包含非法的 '..' 分量: {{path}}",
+  "DIR_ALREADY_EXISTS": "目标目录已存在"
+}

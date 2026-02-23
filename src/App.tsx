@@ -19,7 +19,8 @@ import {
   useSettingsStore,
 } from "@/stores";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
-import { historyService } from "@/services";
+import { historyService, terminalService } from "@/services";
+import { waitForTauri } from "@/utils";
 
 export default function App() {
   const isDark = useThemeStore((s) => s.isDark);
@@ -42,11 +43,18 @@ export default function App() {
   // 注册全局快捷键
   useKeyboardShortcuts();
 
-  // 初始化设置 + TerminalStatusStore
+  // 初始化设置 + TerminalStatusStore（等待 Tauri IPC 就绪）
   useEffect(() => {
-    useSettingsStore.getState().loadSettings();
-    useTerminalStatusStore.getState().init();
-    return () => useTerminalStatusStore.getState().cleanup();
+    let cancelled = false;
+    waitForTauri().then((ready) => {
+      if (cancelled || !ready) return;
+      useSettingsStore.getState().loadSettings();
+      useTerminalStatusStore.getState().init();
+    });
+    return () => {
+      cancelled = true;
+      useTerminalStatusStore.getState().cleanup();
+    };
   }, []);
 
   // 注册快捷键动作（所有 handler 通过 getState() 获取最新值，无需依赖）
@@ -78,6 +86,10 @@ export default function App() {
         if (!s.activePaneId) return;
         const panel = s.findPaneById(s.activePaneId);
         if (panel && panel.type === "panel" && panel.activeTabId) {
+          const tab = panel.tabs.find((t) => t.id === panel.activeTabId);
+          if (tab?.sessionId) {
+            terminalService.killSession(tab.sessionId).catch(console.error);
+          }
           s.closeTab(s.activePaneId, panel.activeTabId);
         }
       },

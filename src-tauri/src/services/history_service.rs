@@ -440,7 +440,7 @@ impl HistoryService {
         let count = watchers.len();
         watchers.clear();
         if count > 0 {
-            eprintln!("[cleanup] 已停止 {} 个文件监控器", count);
+            eprintln!("[cleanup] stopped {} file watchers", count);
         }
     }
 

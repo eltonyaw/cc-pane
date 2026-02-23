@@ -27,7 +27,7 @@ pub fn output_with_timeout(cmd: &mut Command, timeout: Duration) -> io::Result<O
                 return Err(io::Error::new(
                     io::ErrorKind::TimedOut,
                     format!(
-                        "命令执行超时（已等待 {} 秒）",
+                        "Command timed out (waited {} seconds)",
                         timeout.as_secs()
                     ),
                 ));

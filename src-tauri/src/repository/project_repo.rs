@@ -70,7 +70,7 @@ impl ProjectRepository {
         )
         .map_err(|e| {
             if e.to_string().contains("UNIQUE") {
-                "项目已存在".to_string()
+                "Project already exists".to_string()
             } else {
                 e.to_string()
             }
@@ -175,7 +175,7 @@ mod tests {
         let result = repo.insert(&p2);
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("项目已存在"));
+        assert!(result.unwrap_err().contains("Project already exists"));
     }
 
     #[test]

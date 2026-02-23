@@ -23,17 +23,17 @@ impl ProjectService {
         // 验证路径存在
         let path_buf = PathBuf::from(path);
         if !path_buf.exists() {
-            return Err("路径不存在".to_string());
+            return Err("Path does not exist".to_string());
         }
 
         // 验证是目录
         if !path_buf.is_dir() {
-            return Err("路径不是目录".to_string());
+            return Err("Path is not a directory".to_string());
         }
 
         // 检查是否已存在（可选，insert 也会检查）
         if self.repo.exists_by_path(path)? {
-            return Err("项目已存在".to_string());
+            return Err("Project already exists".to_string());
         }
 
         // 创建项目
@@ -49,7 +49,7 @@ impl ProjectService {
     pub fn remove_project(&self, id: &str) -> Result<(), String> {
         let deleted = self.repo.delete(id)?;
         if !deleted {
-            return Err("项目不存在".to_string());
+            return Err("Project does not exist".to_string());
         }
         Ok(())
     }
@@ -63,12 +63,12 @@ impl ProjectService {
     pub fn update_project_name(&self, id: &str, name: &str) -> Result<(), String> {
         // 验证名称不为空
         if name.trim().is_empty() {
-            return Err("项目名称不能为空".to_string());
+            return Err("Project name cannot be empty".to_string());
         }
 
         let updated = self.repo.update_name(id, name)?;
         if !updated {
-            return Err("项目不存在".to_string());
+            return Err("Project does not exist".to_string());
         }
         Ok(())
     }
@@ -83,7 +83,7 @@ impl ProjectService {
 
         let updated = self.repo.update_alias(id, alias)?;
         if !updated {
-            return Err("项目不存在".to_string());
+            return Err("Project does not exist".to_string());
         }
         Ok(())
     }
@@ -134,7 +134,7 @@ mod tests {
         let result = service.add_project(&path);
 
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), "路径不存在");
+        assert_eq!(result.unwrap_err(), "Path does not exist");
 
         cleanup(&temp_dir);
     }
@@ -148,7 +148,7 @@ mod tests {
         let result = service.add_project(file_path.to_str().unwrap());
 
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), "路径不是目录");
+        assert_eq!(result.unwrap_err(), "Path is not a directory");
 
         cleanup(&temp_dir);
     }
@@ -162,7 +162,7 @@ mod tests {
         let result = service.add_project(path);
 
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), "项目已存在");
+        assert_eq!(result.unwrap_err(), "Project already exists");
 
         cleanup(&temp_dir);
     }
@@ -205,7 +205,7 @@ mod tests {
         let result = service.remove_project("non-existent");
 
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), "项目不存在");
+        assert_eq!(result.unwrap_err(), "Project does not exist");
 
         cleanup(&temp_dir);
     }
@@ -232,7 +232,7 @@ mod tests {
         let result = service.update_project_name(&project.id, "  ");
 
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), "项目名称不能为空");
+        assert_eq!(result.unwrap_err(), "Project name cannot be empty");
 
         cleanup(&temp_dir);
     }

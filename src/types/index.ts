@@ -27,4 +27,5 @@ export type {
   TerminalStatusType,
   TerminalStatusInfo,
   DataDirInfo,
+  ShellInfo,
 } from "./settings";

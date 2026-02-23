@@ -11,6 +11,9 @@ mod worktree_commands;
 mod workspace_commands;
 mod settings_commands;
 mod provider_commands;
+mod todo_commands;
+mod mcp_config_commands;
+mod skill_commands;
 
 pub use claude_commands::*;
 pub use git_commands::*;
@@ -25,3 +28,6 @@ pub use worktree_commands::*;
 pub use workspace_commands::*;
 pub use settings_commands::*;
 pub use provider_commands::*;
+pub use todo_commands::*;
+pub use mcp_config_commands::*;
+pub use skill_commands::*;

@@ -9,7 +9,7 @@ use crate::utils::error::AppError;
 /// 2. 路径是绝对路径（或为空时跳过）
 pub fn validate_path(path: &str) -> Result<(), AppError> {
     if path.is_empty() {
-        return Err(AppError::from("路径不能为空"));
+        return Err(AppError::from("Path cannot be empty"));
     }
 
     let p = Path::new(path);
@@ -18,7 +18,7 @@ pub fn validate_path(path: &str) -> Result<(), AppError> {
     for component in p.components() {
         if let std::path::Component::ParentDir = component {
             return Err(AppError::from(format!(
-                "路径包含非法的 '..' 分量: {}",
+                "Path contains illegal '..' component: {}",
                 path
             )));
         }
@@ -26,7 +26,7 @@ pub fn validate_path(path: &str) -> Result<(), AppError> {
 
     // 要求绝对路径
     if !p.is_absolute() {
-        return Err(AppError::from(format!("路径必须是绝对路径: {}", path)));
+        return Err(AppError::from(format!("Path must be absolute: {}", path)));
     }
 
     Ok(())
@@ -41,7 +41,7 @@ pub fn validate_relative_path(project_path: &str, file_path: &str) -> Result<(),
     // file_path 是相对路径，检查不包含 ..
     if file_path.contains("..") {
         return Err(AppError::from(format!(
-            "文件路径包含非法的 '..' 分量: {}",
+            "File path contains illegal '..' component: {}",
             file_path
         )));
     }
@@ -54,19 +54,19 @@ pub fn validate_relative_path(project_path: &str, file_path: &str) -> Result<(),
 /// 拒绝包含路径穿越或路径分隔符的名称
 pub fn validate_worktree_name(name: &str) -> Result<(), AppError> {
     if name.is_empty() {
-        return Err(AppError::from("Worktree 名称不能为空"));
+        return Err(AppError::from("Worktree name cannot be empty"));
     }
 
     if name.contains("..") || name.contains('/') || name.contains('\\') {
         return Err(AppError::from(format!(
-            "Worktree 名称包含非法字符: {}",
+            "Worktree name contains illegal characters: {}",
             name
         )));
     }
 
     // 拒绝纯空白名称
     if name.trim().is_empty() {
-        return Err(AppError::from("Worktree 名称不能为空白"));
+        return Err(AppError::from("Worktree name cannot be blank"));
     }
 
     Ok(())
@@ -77,21 +77,57 @@ pub fn validate_worktree_name(name: &str) -> Result<(), AppError> {
 /// 只允许 HTTP/HTTPS 协议，防止 file:// 等危险协议
 pub fn validate_git_url(url: &str) -> Result<(), AppError> {
     if url.is_empty() {
-        return Err(AppError::from("Git URL 不能为空"));
+        return Err(AppError::from("Git URL cannot be empty"));
     }
 
     if !url.starts_with("http://") && !url.starts_with("https://") {
         return Err(AppError::from(format!(
-            "仅支持 HTTP/HTTPS 协议的 Git URL: {}",
+            "Only HTTP/HTTPS protocol Git URLs are supported: {}",
             url
         )));
     }
 
     // 防止命令注入字符
     if url.contains(';') || url.contains('|') || url.contains('`') || url.contains("$(") {
-        return Err(AppError::from("Git URL 包含非法字符"));
+        return Err(AppError::from("Git URL contains illegal characters"));
     }
 
+    Ok(())
+}
+
+/// 验证 MCP Server 名称
+pub fn validate_mcp_name(name: &str) -> Result<(), AppError> {
+    if name.trim().is_empty() {
+        return Err(AppError::from("MCP server name cannot be empty"));
+    }
+    if name.len() > 128 {
+        return Err(AppError::from("MCP server name is too long (max 128 chars)"));
+    }
+    if !name
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == '.')
+    {
+        return Err(AppError::from(
+            "MCP server name contains invalid characters (only alphanumeric, -, _, . allowed)",
+        ));
+    }
+    Ok(())
+}
+
+/// 验证命令名安全性
+pub fn validate_command(command: &str) -> Result<(), AppError> {
+    if command.trim().is_empty() {
+        return Err(AppError::from("Command cannot be empty"));
+    }
+    if command.contains(';')
+        || command.contains('|')
+        || command.contains('`')
+        || command.contains("$(")
+    {
+        return Err(AppError::from(
+            "Command contains potentially dangerous characters",
+        ));
+    }
     Ok(())
 }
 

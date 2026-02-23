@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import {
   Folder, ChevronRight, Trash2, Plus, Pencil, FileText, Clock,
   FolderOpen, FolderSearch, ShieldCheck, Terminal, Cloud, Check, GitBranch,
-  LayoutGrid,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -17,7 +16,7 @@ import {
 } from "@/components/ui/context-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useWorkspacesStore, useProvidersStore, useThemeStore, useDialogStore, useTasksStore } from "@/stores";
+import { useWorkspacesStore, useProvidersStore, useThemeStore, useDialogStore } from "@/stores";
 import { worktreeService, type WorktreeInfo } from "@/services";
 import { scanDirectory, type ScannedRepo } from "@/services/workspaceService";
 import ScanImportDialog from "@/components/ScanImportDialog";
@@ -27,12 +26,10 @@ import type { Workspace, WorkspaceProject } from "@/types";
 
 interface WorkspaceTreeProps {
   onOpenTerminal: (path: string, workspaceName?: string, providerId?: string) => void;
-  onOpenBoard: (boardId: string, boardName: string) => void;
 }
 
 export default function WorkspaceTree({
   onOpenTerminal,
-  onOpenBoard,
 }: WorkspaceTreeProps) {
   const onOpenJournal = useDialogStore((s) => s.openJournal);
   const onOpenHistory = useDialogStore((s) => s.openLocalHistory);
@@ -306,29 +303,6 @@ export default function WorkspaceTree({
     onOpenTerminal(path);
   }
 
-  // ============ 看板操作 ============
-
-  const createBoard = useTasksStore((s) => s.createBoard);
-
-  async function handleOpenBoard(ws: Workspace) {
-    try {
-      // 加载工作空间的看板列表
-      const boards = await useTasksStore.getState().loadBoards(ws.name).then(() => useTasksStore.getState().boards);
-      const wsBoards = boards.filter((b) => b.workspace_name === ws.name);
-
-      if (wsBoards.length > 0) {
-        // 打开第一个看板
-        onOpenBoard(wsBoards[0].id, wsBoards[0].name);
-      } else {
-        // 自动创建默认看板
-        const board = await createBoard(ws.name, ws.name);
-        onOpenBoard(board.id, board.name);
-      }
-    } catch (e) {
-      toast.error(`打开看板失败: ${e}`);
-    }
-  }
-
   return (
     <>
       {/* Section: 工作空间 */}
@@ -371,9 +345,6 @@ export default function WorkspaceTree({
                   <Terminal size={14} className="mr-2" /> 打开终端
                 </ContextMenuItem>
                 <ContextMenuSeparator />
-                <ContextMenuItem onClick={() => handleOpenBoard(ws)}>
-                  <LayoutGrid size={14} className="mr-2" /> 任务看板
-                </ContextMenuItem>
                 <ContextMenuItem onClick={() => onOpenJournal(ws.name)}>
                   <FileText size={14} className="mr-2" /> 会话日志
                 </ContextMenuItem>

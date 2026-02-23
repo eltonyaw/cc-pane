@@ -4,6 +4,7 @@ mod history;
 mod workspace;
 pub mod settings;
 pub mod provider;
+pub mod todo;
 
 pub use project::Project;
 pub use terminal::{CreateSessionRequest, ResizeRequest, TerminalExit, TerminalOutput};

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { listen } from "@tauri-apps/api/event";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { toast } from "sonner";
 import { FolderOpen } from "lucide-react";
 import {
@@ -100,7 +100,7 @@ export default function GitCloneDialog({
     setCloning(true);
     setProgress(null);
 
-    const unlisten = await listen<GitCloneProgress>("git-clone-progress", (e) => {
+    const unlisten = await getCurrentWebview().listen<GitCloneProgress>("git-clone-progress", (e) => {
       setProgress(e.payload);
     });
 

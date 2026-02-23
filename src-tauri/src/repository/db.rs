@@ -14,13 +14,23 @@ impl Database {
         // 确保目录存在
         if let Some(parent) = db_path.parent() {
             std::fs::create_dir_all(parent)
-                .map_err(|e| AppError::from(format!("无法创建数据库目录: {}", e)))?;
+                .map_err(|e| AppError::from(format!("Failed to create database directory: {}", e)))?;
         }
 
         let conn = Connection::open(&db_path)
-            .map_err(|e| AppError::from(format!("无法打开数据库: {}", e)))?;
+            .map_err(|e| AppError::from(format!("Failed to open database: {}", e)))?;
         Self::init_tables(&conn)?;
 
+        Ok(Self {
+            conn: Mutex::new(conn),
+        })
+    }
+
+    /// 降级到内存数据库（磁盘数据库失败时的 fallback）
+    pub fn new_fallback() -> Result<Self, AppError> {
+        let conn = Connection::open_in_memory()
+            .map_err(|e| AppError::from(format!("Failed to create fallback in-memory database: {}", e)))?;
+        Self::init_tables(&conn)?;
         Ok(Self {
             conn: Mutex::new(conn),
         })
@@ -38,7 +48,7 @@ impl Database {
             )",
             [],
         )
-        .map_err(|e| AppError::from(format!("无法创建 projects 表: {}", e)))?;
+        .map_err(|e| AppError::from(format!("Failed to create projects table: {}", e)))?;
 
         // 迁移：为旧表添加 alias 字段
         let _ = conn.execute("ALTER TABLE projects ADD COLUMN alias TEXT", []);
@@ -53,7 +63,41 @@ impl Database {
             )",
             [],
         )
-        .map_err(|e| AppError::from(format!("无法创建 launch_history 表: {}", e)))?;
+        .map_err(|e| AppError::from(format!("Failed to create launch_history table: {}", e)))?;
+
+        // Todo 表
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS todos (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                status TEXT NOT NULL DEFAULT 'todo',
+                priority TEXT NOT NULL DEFAULT 'medium',
+                scope TEXT NOT NULL DEFAULT 'global',
+                scope_ref TEXT,
+                tags TEXT DEFAULT '[]',
+                due_date TEXT,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )",
+            [],
+        )
+        .map_err(|e| AppError::from(format!("Failed to create todos table: {}", e)))?;
+
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS todo_subtasks (
+                id TEXT PRIMARY KEY,
+                todo_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                completed INTEGER NOT NULL DEFAULT 0,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (todo_id) REFERENCES todos(id) ON DELETE CASCADE
+            )",
+            [],
+        )
+        .map_err(|e| AppError::from(format!("Failed to create todo_subtasks table: {}", e)))?;
 
         Ok(())
     }
@@ -61,18 +105,13 @@ impl Database {
     /// 创建内存数据库（用于测试）
     #[cfg(test)]
     pub fn new_in_memory() -> Result<Self, AppError> {
-        let conn = Connection::open_in_memory()
-            .map_err(|e| AppError::from(format!("无法创建内存数据库: {}", e)))?;
-        Self::init_tables(&conn)?;
-        Ok(Self {
-            conn: Mutex::new(conn),
-        })
+        Self::new_fallback()
     }
 
     /// 获取数据库连接的可变引用
     pub fn connection(&self) -> Result<MutexGuard<'_, Connection>, AppError> {
         self.conn
             .lock()
-            .map_err(|_| AppError::from("数据库锁被污染"))
+            .map_err(|_| AppError::from("Database lock poisoned"))
     }
 }

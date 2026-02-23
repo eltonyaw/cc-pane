@@ -1,9 +1,8 @@
-import { useState, useCallback } from "react";
-import { Allotment } from "allotment";
+import { useCallback, useMemo } from "react";
 import type { SplitPane } from "@/types";
 import { usePanesStore } from "@/stores";
 import PaneContainer from "./PaneContainer";
-import "allotment/dist/style.css";
+import SplitView from "./SplitView";
 
 interface SplitContainerProps {
   pane: SplitPane;
@@ -11,50 +10,42 @@ interface SplitContainerProps {
 
 export default function SplitContainer({ pane }: SplitContainerProps) {
   const resizePanes = usePanesStore((s) => s.resizePanes);
-  const [isResizing, setIsResizing] = useState(false);
 
-  // allotment onChange 返回像素大小数组，需要转成百分比存储
-  const handleChange = useCallback(
+  const handleDragEnd = useCallback(
     (sizes: number[]) => {
       const total = sizes.reduce((a, b) => a + b, 0);
-      if (total > 0) {
-        const percentages = sizes.map((s) => (s / total) * 100);
-        resizePanes(pane.id, percentages);
-      }
+      if (total <= 0 || sizes.length === 0) return;
+
+      // 归一化为百分比，确保总和恰好为 100%
+      const rounded = sizes.map(
+        (s) => Math.round((s / total) * 1000) / 10
+      );
+      const sum = rounded.slice(0, -1).reduce((a, b) => a + b, 0);
+      rounded[rounded.length - 1] = Math.round((100 - sum) * 10) / 10;
+
+      resizePanes(pane.id, rounded);
     },
     [pane.id, resizePanes]
   );
 
-  function handleMouseDown(e: React.MouseEvent) {
-    const target = e.target as HTMLElement;
-    if (target.closest(".sash-container") || target.classList.contains("sash")) {
-      setIsResizing(true);
-      const handleMouseUp = () => setIsResizing(false);
-      document.addEventListener("mouseup", handleMouseUp, { once: true });
-    }
-  }
+  const childKeys = useMemo(
+    () => pane.children.map((child) => child.id),
+    [pane.children]
+  );
 
   return (
-    <div
-      className="h-full split-container"
-      style={{ pointerEvents: isResizing ? "none" : undefined }}
-      onMouseDown={handleMouseDown}
-    >
-      <Allotment
+    <div className="h-full split-container">
+      <SplitView
         vertical={pane.direction === "vertical"}
-        proportionalLayout
-        onChange={handleChange}
+        sizes={pane.sizes}
+        minSize={50}
+        onDragEnd={handleDragEnd}
+        keys={childKeys}
       >
-        {pane.children.map((child, index) => (
-          <Allotment.Pane
-            key={child.id}
-            preferredSize={`${pane.sizes[index]}%`}
-            minSize={50}
-          >
-            <PaneContainer pane={child} />
-          </Allotment.Pane>
+        {pane.children.map((child) => (
+          <PaneContainer key={child.id} pane={child} />
         ))}
-      </Allotment>
+      </SplitView>
     </div>
   );
 }

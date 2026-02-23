@@ -1,0 +1,137 @@
+import { useTranslation } from "react-i18next";
+import { Badge } from "@/components/ui/badge";
+import {
+  Circle,
+  CheckCircle2,
+  CircleDashed,
+  Flag,
+  Calendar,
+  CheckSquare,
+} from "lucide-react";
+import type { TodoItem } from "@/types";
+
+interface TodoListItemProps {
+  todo: TodoItem;
+  isSelected: boolean;
+  onSelect: () => void;
+  onToggleStatus: () => void;
+}
+
+const PRIORITY_FLAG_STYLE = {
+  high: "text-rose-500 fill-rose-500/20",
+  medium: "text-amber-500 fill-amber-500/20",
+  low: "text-slate-400",
+};
+
+export default function TodoListItem({
+  todo,
+  isSelected,
+  onSelect,
+  onToggleStatus,
+}: TodoListItemProps) {
+  const { t } = useTranslation("dialogs");
+  const completedSubtasks = todo.subtasks.filter((s) => s.completed).length;
+  const totalSubtasks = todo.subtasks.length;
+  const isOverdue =
+    todo.dueDate &&
+    todo.status !== "done" &&
+    new Date(todo.dueDate) < new Date();
+
+  const statusIcon =
+    todo.status === "done" ? (
+      <CheckCircle2 className="w-[18px] h-[18px] text-emerald-500" />
+    ) : todo.status === "in_progress" ? (
+      <CircleDashed className="w-[18px] h-[18px] text-blue-500 animate-[spin_4s_linear_infinite]" />
+    ) : (
+      <Circle className="w-[18px] h-[18px] text-muted-foreground hover:text-primary transition-colors" />
+    );
+
+  return (
+    <div
+      className={`group relative flex items-start gap-2.5 px-3 py-2.5 cursor-pointer rounded-lg mx-1 my-0.5
+        transition-all duration-200 ease-out border
+        ${
+          isSelected
+            ? "bg-accent/50 border-primary/20 shadow-sm"
+            : "bg-transparent border-transparent hover:bg-accent/30 hover:border-border/50"
+        }`}
+      onClick={onSelect}
+    >
+      {/* 选中时左侧强调线 */}
+      {isSelected && (
+        <div className="absolute left-0 top-2.5 bottom-2.5 w-[3px] bg-primary rounded-r-full" />
+      )}
+
+      {/* 状态切换 */}
+      <button
+        className="mt-0.5 shrink-0 transition-transform active:scale-90"
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleStatus();
+        }}
+        title={t("todoToggleStatus")}
+      >
+        {statusIcon}
+      </button>
+
+      {/* 内容 */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className={`text-sm font-medium truncate transition-colors duration-200 ${
+              todo.status === "done"
+                ? "line-through text-muted-foreground/50"
+                : "text-foreground"
+            }`}
+          >
+            {todo.title}
+          </span>
+          {/* 优先级旗标 */}
+          <div className="shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
+            <Flag
+              className={`w-3.5 h-3.5 ${PRIORITY_FLAG_STYLE[todo.priority]}`}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+          {/* Tags */}
+          {todo.tags.slice(0, 3).map((tag) => (
+            <Badge
+              key={tag}
+              variant="secondary"
+              className="text-[10px] px-1.5 py-0 h-4 font-medium"
+            >
+              {tag}
+            </Badge>
+          ))}
+          {todo.tags.length > 3 && (
+            <span className="text-[10px] text-muted-foreground bg-secondary/50 px-1 rounded">
+              +{todo.tags.length - 3}
+            </span>
+          )}
+
+          {/* 子任务进度 */}
+          {totalSubtasks > 0 && (
+            <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+              <CheckSquare size={9} />
+              {completedSubtasks}/{totalSubtasks}
+            </span>
+          )}
+
+          {/* 到期日 */}
+          {todo.dueDate && (
+            <span
+              className={`flex items-center gap-0.5 text-[10px] ${
+                isOverdue ? "text-red-500 font-medium" : "text-muted-foreground"
+              }`}
+            >
+              <Calendar size={9} />
+              {new Date(todo.dueDate).toLocaleDateString()}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

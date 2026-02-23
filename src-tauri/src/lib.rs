@@ -1,12 +1,13 @@
 mod commands;
 pub mod models;
+pub mod pty;
 pub mod repository;
 pub mod services;
 pub mod utils;
 
 use commands::{
     add_launch_history, add_project, clear_launch_history, create_terminal_session,
-    enter_fullscreen, exit_fullscreen, get_all_terminal_status,
+    enter_fullscreen, exit_fullscreen, get_all_terminal_status, get_available_shells, get_windows_build_number,
     get_git_branch, get_git_status, get_project,
     git_clone, git_fetch, git_pull, git_push, git_stash, git_stash_pop, is_fullscreen, kill_terminal,
     list_all_claude_sessions, list_claude_sessions, scan_broken_sessions,
@@ -48,17 +49,18 @@ use commands::{
     // Provider 命令
     list_providers, get_provider, get_default_provider,
     add_provider, update_provider, remove_provider, set_default_provider,
-    // Task 命令
-    create_task_board, list_task_boards, get_task_board, delete_task_board, rename_task_board,
-    create_task, list_tasks, get_task, update_task, delete_task,
-    update_task_status, move_task, update_task_session,
+    // Todo 命令
+    create_todo, get_todo, update_todo, delete_todo, query_todos,
+    reorder_todos, batch_update_todo_status, get_todo_stats,
+    add_todo_subtask, update_todo_subtask, delete_todo_subtask,
+    toggle_todo_subtask, reorder_todo_subtasks,
     // MCP 配置命令
     list_mcp_servers, get_mcp_server, upsert_mcp_server, remove_mcp_server,
     // Skill 命令
     list_skills, get_skill, save_skill, delete_skill, copy_skill,
 };
-use repository::{Database, ProjectRepository, HistoryRepository, TaskRepository};
-use services::{ProjectService, TerminalService, HistoryService, HooksService, JournalService, WorktreeService, WorkspaceService, SettingsService, ProviderService, NotificationService, LaunchHistoryService, TaskService, McpConfigService, SkillService};
+use repository::{Database, ProjectRepository, HistoryRepository, TodoRepository};
+use services::{ProjectService, TerminalService, HistoryService, HooksService, JournalService, WorktreeService, WorkspaceService, SettingsService, ProviderService, NotificationService, LaunchHistoryService, TodoService, McpConfigService, SkillService};
 use utils::AppPaths;
 use std::sync::Arc;
 
@@ -83,17 +85,17 @@ pub fn run() {
     let db = match Database::new(app_paths.database_path()) {
         Ok(db) => Arc::new(db),
         Err(e) => {
-            eprintln!("数据库初始化失败: {}，尝试内存数据库降级", e);
+            eprintln!("Database initialization failed: {}, trying in-memory fallback", e);
             Arc::new(Database::new_fallback().unwrap_or_else(|e2| {
-                panic!("数据库初始化完全失败（含降级）: {}", e2);
+                panic!("Database initialization completely failed (including fallback): {}", e2);
             }))
         }
     };
     let project_repo = Arc::new(ProjectRepository::new(db.clone()));
     let history_repo = Arc::new(HistoryRepository::new(db.clone()));
-    let task_repo = Arc::new(TaskRepository::new(db));
+    let todo_repo = Arc::new(TodoRepository::new(db));
     let launch_history_service = Arc::new(LaunchHistoryService::new(history_repo));
-    let task_service = Arc::new(TaskService::new(task_repo));
+    let todo_service = Arc::new(TodoService::new(todo_repo));
     let project_service = Arc::new(ProjectService::new(project_repo));
     let history_service = Arc::new(HistoryService::new());
     let hooks_service = Arc::new(HooksService::new());
@@ -131,13 +133,13 @@ pub fn run() {
         .manage(settings_service)
         .manage(provider_service)
         .manage(notification_service)
-        .manage(task_service)
+        .manage(todo_service)
         .manage(mcp_config_service)
         .manage(skill_service)
         .setup(|app| {
             // ---- 系统托盘 ----
-            let show = MenuItem::with_id(app, "show", "显示窗口", true, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", "退出程序", true, None::<&str>)?;
+            let show = MenuItem::with_id(app, "show", "Show Window", true, None::<&str>)?;
+            let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show, &quit])?;
 
             let icon =
@@ -202,6 +204,8 @@ pub fn run() {
             resize_terminal,
             kill_terminal,
             get_all_terminal_status,
+            get_available_shells,
+            get_windows_build_number,
             // 窗口命令
             close_window,
             minimize_window,
@@ -303,20 +307,20 @@ pub fn run() {
             update_provider,
             remove_provider,
             set_default_provider,
-            // Task 命令
-            create_task_board,
-            list_task_boards,
-            get_task_board,
-            delete_task_board,
-            rename_task_board,
-            create_task,
-            list_tasks,
-            get_task,
-            update_task,
-            delete_task,
-            update_task_status,
-            move_task,
-            update_task_session,
+            // Todo 命令
+            create_todo,
+            get_todo,
+            update_todo,
+            delete_todo,
+            query_todos,
+            reorder_todos,
+            batch_update_todo_status,
+            get_todo_stats,
+            add_todo_subtask,
+            update_todo_subtask,
+            delete_todo_subtask,
+            toggle_todo_subtask,
+            reorder_todo_subtasks,
             // MCP 配置命令
             list_mcp_servers,
             get_mcp_server,
@@ -333,7 +337,7 @@ pub fn run() {
         .expect("error while building tauri application")
         .run(move |_app_handle, event| {
             if let tauri::RunEvent::Exit = event {
-                eprintln!("[cleanup] 应用退出，清理资源...");
+                eprintln!("[cleanup] Application exiting, cleaning up resources...");
                 terminal_cleanup.cleanup_all();
                 history_cleanup.stop_all_watching();
             }

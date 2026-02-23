@@ -1,0 +1,22 @@
+{
+  "ready": "Ready",
+  "selectProject": "Select a project from the sidebar to open a terminal",
+  "backToTerminal": "Back to Terminal",
+  "todoLabel": "Todo - {{label}}",
+  "todoListDefault": "TodoList",
+  "splitRight": "Split Right",
+  "splitDown": "Split Down",
+  "closePanel": "Close Panel",
+  "renameTab": "Rename",
+  "unpinTab": "Unpin",
+  "pinTab": "Pin Tab",
+  "minimizeTab": "Minimize",
+  "closeTab": "Close Tab",
+  "restoreTab": "Restore Tab",
+  "restoreClosedTabs": "Restore Closed Tabs ({{count}})",
+  "clickToRestore": "Click to restore",
+  "searchPlaceholder": "Search...",
+  "searchPrev": "Previous (Shift+Enter)",
+  "searchNext": "Next (Enter)",
+  "searchClose": "Close (Esc)"
+}

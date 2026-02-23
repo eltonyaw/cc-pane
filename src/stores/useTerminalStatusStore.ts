@@ -1,6 +1,8 @@
 import { create } from "zustand";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import type { UnlistenFn } from "@tauri-apps/api/event";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import type { TerminalStatusType, TerminalStatusInfo } from "@/types";
+import { killedSessions } from "@/services/terminalService";
 
 interface TerminalStatusState {
   statusMap: Map<string, TerminalStatusInfo>;
@@ -36,7 +38,10 @@ export const useTerminalStatusStore = create<TerminalStatusState>((set, get) => 
     if (get()._initialized) return;
     set({ _initialized: true });
 
-    const unlistenFn = await listen<TerminalStatusInfo>("terminal-status", (event) => {
+    const unlistenFn = await getCurrentWebview().listen<TerminalStatusInfo>("terminal-status", (event) => {
+      if (killedSessions.has(event.payload.sessionId)) return;
+      const current = get().statusMap.get(event.payload.sessionId);
+      if (current && current.status === event.payload.status) return;
       set((state) => {
         const newMap = new Map(state.statusMap);
         newMap.set(event.payload.sessionId, event.payload);

@@ -132,7 +132,7 @@ pub fn list_claude_sessions(project_path: String) -> AppResult<Vec<ClaudeSession
     let mut sessions = Vec::new();
 
     let home = dirs::home_dir()
-        .ok_or_else(|| "无法获取用户主目录")?;
+        .ok_or_else(|| "Failed to get user home directory")?;
 
     let claude_projects = home.join(".claude").join("projects");
     if !claude_projects.exists() {
@@ -184,7 +184,7 @@ pub fn list_all_claude_sessions() -> AppResult<Vec<ClaudeSession>> {
     let mut sessions = Vec::new();
 
     let home = dirs::home_dir()
-        .ok_or_else(|| "无法获取用户主目录")?;
+        .ok_or_else(|| "Failed to get user home directory")?;
 
     let claude_projects = home.join(".claude").join("projects");
     if !claude_projects.exists() {
@@ -274,7 +274,7 @@ pub fn scan_broken_sessions(project_path: Option<String>) -> AppResult<Vec<Broke
     let mut results = Vec::new();
 
     let home = dirs::home_dir()
-        .ok_or_else(|| "无法获取用户主目录")?;
+        .ok_or_else(|| "Failed to get user home directory")?;
 
     let claude_projects = home.join(".claude").join("projects");
     if !claude_projects.exists() {
@@ -361,16 +361,16 @@ pub fn clean_session_file(file_path: String) -> CleanResult {
 
     // 路径安全校验：必须在 ~/.claude 目录范围内
     let validate = || -> Result<(), String> {
-        let canonical = path.canonicalize().map_err(|e| format!("无效路径: {}", e))?;
+        let canonical = path.canonicalize().map_err(|e| format!("Invalid path: {}", e))?;
         let claude_dir = dirs::home_dir()
-            .ok_or_else(|| "无法获取 home 目录".to_string())?
+            .ok_or_else(|| "Failed to get home directory".to_string())?
             .join(".claude");
         if !canonical.starts_with(&claude_dir) {
-            return Err("路径不在 .claude 目录范围内".to_string());
+            return Err("Path is not within .claude directory".to_string());
         }
         // 扩展名必须为 .jsonl
         if canonical.extension().map_or(true, |e| e != "jsonl") {
-            return Err("只允许操作 .jsonl 文件".to_string());
+            return Err("Only .jsonl files are allowed".to_string());
         }
         Ok(())
     };
@@ -391,7 +391,7 @@ pub fn clean_session_file(file_path: String) -> CleanResult {
                 file_path,
                 removed_blocks: 0,
                 success: false,
-                error: Some(format!("读取文件失败: {}", e)),
+                error: Some(format!("Failed to read file: {}", e)),
             };
         }
     };
@@ -463,19 +463,19 @@ pub fn clean_session_file(file_path: String) -> CleanResult {
     let tmp_path = path.with_extension("jsonl.tmp");
     let write_result = (|| -> Result<(), String> {
         let mut tmp_file = File::create(&tmp_path)
-            .map_err(|e| format!("创建临时文件失败: {}", e))?;
+            .map_err(|e| format!("Failed to create temp file: {}", e))?;
         for (i, line) in new_lines.iter().enumerate() {
             tmp_file
                 .write_all(line.as_bytes())
-                .map_err(|e| format!("写入临时文件失败: {}", e))?;
+                .map_err(|e| format!("Failed to write to temp file: {}", e))?;
             if i < new_lines.len() - 1 {
                 tmp_file
                     .write_all(b"\n")
-                    .map_err(|e| format!("写入换行失败: {}", e))?;
+                    .map_err(|e| format!("Failed to write newline: {}", e))?;
             }
         }
-        tmp_file.flush().map_err(|e| format!("flush 失败: {}", e))?;
-        fs::rename(&tmp_path, &path).map_err(|e| format!("rename 失败: {}", e))?;
+        tmp_file.flush().map_err(|e| format!("Failed to flush: {}", e))?;
+        fs::rename(&tmp_path, &path).map_err(|e| format!("Failed to rename: {}", e))?;
         Ok(())
     })();
 

@@ -1,0 +1,89 @@
+{
+  "UNKNOWN_ERROR": "Unknown error",
+  "PATH_EMPTY": "Path cannot be empty",
+  "PATH_TRAVERSAL": "Path contains illegal '..' component: {{path}}",
+  "PATH_NOT_ABSOLUTE": "Path must be absolute: {{path}}",
+  "PATH_NOT_FOUND": "Path not found",
+  "PATH_ALREADY_EXISTS": "Path already exists: {{path}}",
+  "PATH_NOT_DIRECTORY": "Path is not a directory",
+
+  "WORKSPACE_NOT_FOUND": "Workspace '{{name}}' not found",
+  "WORKSPACE_NAME_EMPTY": "Workspace name cannot be empty",
+  "WORKSPACE_NAME_DUPLICATE": "Workspace '{{name}}' already exists",
+  "WORKSPACE_NAME_INVALID": "Workspace name contains illegal characters: {{name}}",
+  "WORKSPACE_NAME_BLANK": "Workspace name cannot be blank",
+
+  "PROJECT_NOT_FOUND": "Project not found",
+  "PROJECT_PATH_EMPTY": "Project path cannot be empty",
+  "PROJECT_ALREADY_EXISTS": "Project already exists: {{path}}",
+  "PROJECT_NAME_EMPTY": "Project name cannot be empty",
+
+  "WORKTREE_NAME_EMPTY": "Worktree name cannot be empty",
+  "WORKTREE_NAME_INVALID": "Worktree name contains illegal characters: {{name}}",
+  "WORKTREE_NAME_BLANK": "Worktree name cannot be blank",
+  "WORKTREE_NOT_GIT_REPO": "Not a Git repository",
+  "WORKTREE_LIST_FAILED": "Failed to list worktrees: {{detail}}",
+  "WORKTREE_CREATE_FAILED": "Failed to create Worktree: {{detail}}",
+  "WORKTREE_DELETE_FAILED": "Failed to delete Worktree: {{detail}}",
+
+  "GIT_URL_EMPTY": "Git URL cannot be empty",
+  "GIT_URL_INVALID_PROTOCOL": "Only HTTP/HTTPS Git URLs are supported: {{url}}",
+  "GIT_URL_INVALID_CHARS": "Git URL contains illegal characters",
+  "GIT_CLONE_TIMEOUT": "git clone timed out (waited 5 minutes)",
+  "GIT_CLONE_FAILED": "git clone failed, please check URL and credentials",
+  "GIT_OPERATION_SUCCESS": "Operation successful",
+
+  "COMMAND_EMPTY": "Command cannot be empty",
+  "COMMAND_INVALID_CHARS": "Command contains illegal character '{{char}}': {{command}}",
+  "COMMAND_SUBSHELL_INJECTION": "Command contains illegal subshell substitution: {{command}}",
+
+  "MCP_NAME_EMPTY": "MCP Server name cannot be empty",
+  "MCP_NAME_TOO_LONG": "MCP Server name cannot exceed 100 characters",
+  "MCP_NAME_INVALID": "MCP Server name contains illegal characters: {{name}}",
+
+  "TODO_TITLE_EMPTY": "Title cannot be empty",
+  "TODO_NOT_FOUND": "Todo {{id}} not found",
+  "TODO_SCOPE_REF_REQUIRED": "workspace/project scope requires scopeRef",
+  "SUBTASK_TITLE_EMPTY": "Subtask title cannot be empty",
+  "SUBTASK_NOT_FOUND": "Subtask {{id}} not found",
+
+  "SKILL_NAME_EMPTY": "Skill name cannot be empty",
+  "SKILL_NAME_PATH_SEPARATOR": "Skill name cannot contain path separators",
+  "SKILL_NAME_DOT_PREFIX": "Skill name cannot start with '.'",
+
+  "PROXY_NOT_ENABLED": "Proxy is not enabled or not configured",
+  "MIGRATION_SYSTEM_DIR": "Migration to system directory is not allowed: {{path}}",
+  "MIGRATION_DIR_NOT_EMPTY": "Target directory must be empty",
+  "MIGRATION_SAME_DIR": "Target directory is the same as current data directory",
+  "MIGRATION_FILE_NOT_FOUND": "Target file not found: {{name}}",
+  "MIGRATION_FILE_MISMATCH": "File size mismatch after migration: {{name}} (expected {{expected}}, got {{actual}})",
+
+  "CLAUDE_HOME_DIR_ERROR": "Cannot get user home directory",
+  "CLAUDE_PATH_NOT_IN_SCOPE": "Path is not within .claude directory scope",
+  "CLAUDE_INVALID_EXTENSION": "Only .jsonl files are allowed",
+  "CLAUDE_FILE_READ_FAILED": "Failed to read file: {{detail}}",
+
+  "JOURNAL_INDEX_NOT_FOUND": "index.md not found",
+  "HOOKS_WORKFLOW_NOT_FOUND": "workflow.md not found",
+
+  "NOTIFICATION_UNKNOWN_ERROR": "Unknown error",
+  "NOTIFICATION_UNSUPPORTED_CHANNEL": "Unsupported channel type: {{type}}",
+
+  "SORT_LIST_EMPTY": "Sort list cannot be empty",
+  "SORT_LIST_DUPLICATE": "Sort list contains duplicate workspace name: {{name}}",
+
+  "SCAN_DIR_NOT_FOUND": "Path does not exist or is not a directory: {{path}}",
+
+  "PROVIDER_NOT_FOUND": "Provider not found",
+  "PROVIDER_NAME_EMPTY": "Provider name cannot be empty",
+  "DB_ERROR": "Database error: {{detail}}",
+  "IO_ERROR": "IO error: {{detail}}",
+  "GIT_ERROR": "Git operation failed: {{detail}}",
+  "PTY_ERROR": "Terminal error: {{detail}}",
+  "SETTINGS_LOAD_FAILED": "Failed to load settings",
+  "SETTINGS_SAVE_FAILED": "Failed to save settings",
+  "TERMINAL_NOT_FOUND": "Terminal session not found",
+
+  "FILE_TRAVERSAL": "File path contains illegal '..' component: {{path}}",
+  "DIR_ALREADY_EXISTS": "Target directory already exists"
+}
