@@ -24,6 +24,13 @@ interface DialogState {
   sessionCleanerProjectPath: string;
   openSessionCleaner: (projectPath: string) => void;
   closeSessionCleaner: () => void;
+
+  // Todo
+  todoOpen: boolean;
+  todoScope: string;
+  todoScopeRef: string;
+  openTodo: (scope: string, scopeRef: string) => void;
+  closeTodo: () => void;
 }
 
 export const useDialogStore = create<DialogState>((set) => ({
@@ -51,4 +58,11 @@ export const useDialogStore = create<DialogState>((set) => ({
   sessionCleanerProjectPath: "",
   openSessionCleaner: (projectPath) => set({ sessionCleanerOpen: true, sessionCleanerProjectPath: projectPath }),
   closeSessionCleaner: () => set({ sessionCleanerOpen: false }),
+
+  // Todo
+  todoOpen: false,
+  todoScope: "",
+  todoScopeRef: "",
+  openTodo: (scope, scopeRef) => set({ todoOpen: true, todoScope: scope, todoScopeRef: scopeRef }),
+  closeTodo: () => set({ todoOpen: false }),
 }));

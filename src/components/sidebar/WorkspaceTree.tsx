@@ -5,7 +5,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { toast } from "sonner";
 import {
-  Folder, ChevronRight, Trash2, Plus, Pencil, FileText, Clock,
+  Folder, ChevronRight, Trash2, Plus, Pencil, FileText, Clock, ListTodo,
   FolderOpen, FolderSearch, ShieldCheck, Terminal, Cloud, Check, GitBranch,
   FolderRoot, X, Copy,
 } from "lucide-react";
@@ -39,6 +39,7 @@ export default function WorkspaceTree({
   const onOpenJournal = useDialogStore((s) => s.openJournal);
   const onOpenHistory = useDialogStore((s) => s.openLocalHistory);
   const onOpenSessionCleaner = useDialogStore((s) => s.openSessionCleaner);
+  const onOpenTodo = useDialogStore((s) => s.openTodo);
   const isDark = useThemeStore((s) => s.isDark);
 
   // Workspace 状态
@@ -481,6 +482,9 @@ export default function WorkspaceTree({
                 <ContextMenuItem onClick={() => onOpenSessionCleaner(ws.name)}>
                   <ShieldCheck size={14} className="mr-2" /> {t("sessionCleaner")}
                 </ContextMenuItem>
+                <ContextMenuItem onClick={() => onOpenTodo("workspace", ws.name)}>
+                  <ListTodo size={14} className="mr-2" /> {t("todoList")}
+                </ContextMenuItem>
                 <ContextMenuSub>
                   <ContextMenuSubTrigger>
                     <Cloud size={14} className="mr-2" /> Provider
@@ -645,6 +649,19 @@ export default function WorkspaceTree({
                     )}
                   </div>
                 ))}
+
+                {/* TodoList 按钮 */}
+                <div
+                  className={`flex items-center gap-2 px-2 py-1.5 mt-1 text-[11px] rounded-lg cursor-pointer transition-all ${
+                    isDark
+                      ? 'text-slate-400 hover:text-blue-300 hover:bg-blue-500/10'
+                      : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50/50'
+                  }`}
+                  onClick={() => onOpenTodo("workspace", ws.name)}
+                >
+                  <ListTodo size={12} />
+                  <span>{t("todoList")}</span>
+                </div>
 
                 {/* 导入项目按钮 */}
                 <div

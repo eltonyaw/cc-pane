@@ -12,6 +12,9 @@ describe("useDialogStore", () => {
       localHistoryFilePath: "",
       sessionCleanerOpen: false,
       sessionCleanerProjectPath: "",
+      todoOpen: false,
+      todoScope: "",
+      todoScopeRef: "",
     });
   });
 
@@ -26,6 +29,9 @@ describe("useDialogStore", () => {
       expect(state.localHistoryFilePath).toBe("");
       expect(state.sessionCleanerOpen).toBe(false);
       expect(state.sessionCleanerProjectPath).toBe("");
+      expect(state.todoOpen).toBe(false);
+      expect(state.todoScope).toBe("");
+      expect(state.todoScopeRef).toBe("");
     });
   });
 
@@ -114,6 +120,28 @@ describe("useDialogStore", () => {
 
       useDialogStore.getState().closeSessionCleaner();
       expect(useDialogStore.getState().sessionCleanerOpen).toBe(false);
+    });
+  });
+
+  describe("Todo dialog", () => {
+    it("openTodo 应设置 todoOpen、todoScope 和 todoScopeRef", () => {
+      useDialogStore.getState().openTodo("workspace", "my-workspace");
+
+      const state = useDialogStore.getState();
+      expect(state.todoOpen).toBe(true);
+      expect(state.todoScope).toBe("workspace");
+      expect(state.todoScopeRef).toBe("my-workspace");
+    });
+
+    it("closeTodo 应设置 todoOpen 为 false", () => {
+      useDialogStore.setState({
+        todoOpen: true,
+        todoScope: "workspace",
+        todoScopeRef: "my-workspace",
+      });
+
+      useDialogStore.getState().closeTodo();
+      expect(useDialogStore.getState().todoOpen).toBe(false);
     });
   });
 });

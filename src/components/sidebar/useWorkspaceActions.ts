@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { toast } from "sonner";
-import { useWorkspacesStore, usePanesStore } from "@/stores";
+import { useWorkspacesStore, usePanesStore, useDialogStore } from "@/stores";
 import { worktreeService, type WorktreeInfo } from "@/services";
 import { scanDirectory, type ScannedRepo } from "@/services/workspaceService";
 import { getProjectName } from "@/utils";
@@ -331,8 +331,8 @@ export function useWorkspaceActions({ onOpenTerminal }: UseWorkspaceActionsParam
     usePanesStore.getState().openMemoryManager(project.path, project.alias || getProjectName(project.path));
   }
 
-  function handleOpenTodoManager(scope?: string, scopeRef?: string, label?: string) {
-    usePanesStore.getState().toggleTodoView(undefined, scope, scopeRef, label);
+  function handleOpenTodoManager(scope?: string, scopeRef?: string) {
+    useDialogStore.getState().openTodo(scope || "global", scopeRef || "");
   }
 
   return {

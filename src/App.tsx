@@ -9,6 +9,7 @@ import SettingsPanel from "@/components/SettingsPanel";
 import JournalPanel from "@/components/JournalPanel";
 import LocalHistoryPanel from "@/components/LocalHistoryPanel";
 import SessionCleanerPanel from "@/components/SessionCleanerPanel";
+import TodoPanel from "@/components/TodoPanel";
 import BorderlessFloatingButton from "@/components/BorderlessFloatingButton";
 import {
   usePanesStore,
@@ -43,6 +44,9 @@ export default function App() {
   const localHistoryFilePath = useDialogStore((s) => s.localHistoryFilePath);
   const sessionCleanerOpen = useDialogStore((s) => s.sessionCleanerOpen);
   const sessionCleanerProjectPath = useDialogStore((s) => s.sessionCleanerProjectPath);
+  const todoOpen = useDialogStore((s) => s.todoOpen);
+  const todoScope = useDialogStore((s) => s.todoScope);
+  const todoScopeRef = useDialogStore((s) => s.todoScopeRef);
 
   // 注册全局快捷键
   useKeyboardShortcuts();
@@ -285,6 +289,12 @@ export default function App() {
           open={sessionCleanerOpen}
           onOpenChange={(open) => open ? useDialogStore.getState().openSessionCleaner(sessionCleanerProjectPath) : useDialogStore.getState().closeSessionCleaner()}
           projectPath={sessionCleanerProjectPath}
+        />
+        <TodoPanel
+          open={todoOpen}
+          onOpenChange={(open) => open ? useDialogStore.getState().openTodo(todoScope, todoScopeRef) : useDialogStore.getState().closeTodo()}
+          scope={todoScope}
+          scopeRef={todoScopeRef}
         />
       </div>
     </TooltipProvider>
