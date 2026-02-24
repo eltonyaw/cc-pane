@@ -40,5 +40,9 @@
   "removeProjectTitle": "移除项目",
   "removeProjectConfirm": "确定要从工作空间移除项目「{{name}}」吗？",
   "selectProjectDir": "选择项目目录",
-  "selectScanDir": "选择要扫描的根目录"
+  "selectScanDir": "选择要扫描的根目录",
+  "systemReady": "系统就绪",
+  "noLaunchRecords": "暂无启动记录",
+  "importHint": "请在工作空间中点击「导入项目」",
+  "newHint": "请先创建工作空间，然后导入项目"
 }

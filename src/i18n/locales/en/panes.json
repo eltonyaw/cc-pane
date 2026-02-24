@@ -18,5 +18,7 @@
   "searchPlaceholder": "Search...",
   "searchPrev": "Previous (Shift+Enter)",
   "searchNext": "Next (Enter)",
-  "searchClose": "Close (Esc)"
+  "searchClose": "Close (Esc)",
+  "splitAndMoveRight": "Split & Move Right",
+  "splitAndMoveDown": "Split & Move Down"
 }

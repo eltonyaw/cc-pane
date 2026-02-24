@@ -1,19 +1,14 @@
 import { useState, useRef, useCallback, memo } from "react";
-import { X, Plus, PanelRight, PanelBottom, Pin, Maximize2, Pencil, Sun, Moon } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { X, Plus, PanelRight, PanelBottom, Pin, Pencil } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import { useBorderlessStore, useTerminalStatusStore, useSettingsStore, useThemeStore, formatKeyCombo } from "@/stores";
+import { useTerminalStatusStore, useThemeStore } from "@/stores";
 import StatusIndicator from "@/components/StatusIndicator";
 import type { Tab } from "@/types";
 
@@ -29,6 +24,8 @@ interface TabBarProps {
   onFullscreen: (tabId: string) => void;
   onReorder: (fromIndex: number, toIndex: number) => void;
   onRename: (tabId: string, newTitle: string) => void;
+  onSplitAndMoveRight: (tabId: string) => void;
+  onSplitAndMoveDown: (tabId: string) => void;
 }
 
 export default memo(function TabBar({
@@ -43,28 +40,18 @@ export default memo(function TabBar({
   onFullscreen,
   onReorder,
   onRename,
+  onSplitAndMoveRight,
+  onSplitAndMoveDown,
 }: TabBarProps) {
-  const isBorderless = useBorderlessStore((s) => s.isBorderless);
-  const exitBorderless = useBorderlessStore((s) => s.exitBorderless);
+  const { t } = useTranslation("panes");
   const getStatus = useTerminalStatusStore((s) => s.getStatus);
-  const settings = useSettingsStore((s) => s.settings);
   const isDark = useThemeStore((s) => s.isDark);
-  const toggleTheme = useThemeStore((s) => s.toggleTheme);
 
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
-
-  function getShortcut(actionId: string): string {
-    const combo = settings?.shortcuts.bindings[actionId];
-    return combo ? formatKeyCombo(combo) : "";
-  }
-
-  function startDrag() {
-    getCurrentWindow().startDragging();
-  }
 
   // 标签拖拽排序
   function handleDragStart(e: React.DragEvent, index: number) {
@@ -120,35 +107,20 @@ export default memo(function TabBar({
 
   return (
     <div
-      className={`flex items-center justify-between h-14 px-4 shrink-0 border-b backdrop-blur-xl transition-colors ${
+      className={`flex items-center h-11 px-4 shrink-0 border-b backdrop-blur-xl transition-colors ${
         isDark
           ? 'bg-[#0F1117]/30 border-white/5'
           : 'bg-white/30 border-white/30'
       }`}
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget && isBorderless) startDrag();
-      }}
     >
-      {/* 无边框模式拖拽区域 */}
-      {isBorderless && (
-        <div
-          className="w-[60px] h-full shrink-0 cursor-grab"
-          style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
-          onMouseDown={(e) => { e.preventDefault(); startDrag(); }}
-        />
-      )}
-
       <div
-        className="flex items-center gap-2 overflow-x-auto flex-1 h-full pt-2"
-        onMouseDown={(e) => {
-          if (e.target === e.currentTarget && isBorderless) startDrag();
-        }}
+        className="flex items-center gap-2 overflow-x-auto flex-1 h-full pt-1.5"
       >
         {tabs.map((tab, index) => (
           <ContextMenu key={tab.id}>
             <ContextMenuTrigger asChild>
               <div
-                className={`relative group flex items-center gap-2.5 px-4 h-10 rounded-t-lg text-sm font-medium transition-all cursor-pointer border-t border-x backdrop-blur-lg ${
+                className={`relative group flex items-center gap-2.5 px-4 h-9 rounded-t-lg text-sm font-medium transition-all cursor-pointer border-t border-x backdrop-blur-lg ${
                   tab.id === activeId
                     ? isDark
                       ? 'bg-[#0F1117]/60 border-white/5 text-blue-300'
@@ -219,17 +191,37 @@ export default memo(function TabBar({
                 )}
               </div>
             </ContextMenuTrigger>
-            <ContextMenuContent className="w-40">
+            <ContextMenuContent className="w-48">
               <ContextMenuItem onClick={() => startRename(tab)}>
-                <Pencil size={14} className="mr-2" /> 重命名
+                <Pencil size={14} className="mr-2" /> {t("renameTab")}
               </ContextMenuItem>
               <ContextMenuItem onClick={() => onTogglePin(tab.id)}>
-                {tab.pinned ? "取消固定" : "固定标签"}
+                {tab.pinned ? t("unpinTab") : t("pinTab")}
               </ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem onClick={onSplitRight}>
+                <PanelRight size={14} className="mr-2" /> {t("splitRight")}
+              </ContextMenuItem>
+              <ContextMenuItem onClick={onSplitDown}>
+                <PanelBottom size={14} className="mr-2" /> {t("splitDown")}
+              </ContextMenuItem>
+              {tabs.length > 1 && (
+                <>
+                  <ContextMenuItem onClick={() => onSplitAndMoveRight(tab.id)}>
+                    <PanelRight size={14} className="mr-2" /> {t("splitAndMoveRight")}
+                  </ContextMenuItem>
+                  <ContextMenuItem onClick={() => onSplitAndMoveDown(tab.id)}>
+                    <PanelBottom size={14} className="mr-2" /> {t("splitAndMoveDown")}
+                  </ContextMenuItem>
+                </>
+              )}
               {!tab.pinned && (
-                <ContextMenuItem className="text-destructive" onClick={() => onClose(tab.id)}>
-                  关闭标签
-                </ContextMenuItem>
+                <>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem className="text-destructive" onClick={() => onClose(tab.id)}>
+                    {t("closeTab")}
+                  </ContextMenuItem>
+                </>
               )}
             </ContextMenuContent>
           </ContextMenu>
@@ -244,96 +236,6 @@ export default memo(function TabBar({
         >
           <Plus className="w-4 h-4" />
         </button>
-      </div>
-
-      <div className="flex items-center gap-4">
-        {/* 主题切换 + 面板切换容器 */}
-        <div className={`flex items-center gap-1 p-1 rounded-lg border backdrop-blur-md ${
-          isDark
-            ? 'bg-black/20 border-white/10'
-            : 'bg-white/40 border-white/40 shadow-sm'
-        }`}>
-          <button
-            onClick={toggleTheme}
-            className={`p-1.5 rounded-md transition-all ${
-              isDark
-                ? 'text-yellow-300 hover:bg-white/10'
-                : 'text-slate-400 hover:bg-white/60 hover:shadow-sm hover:text-yellow-500'
-            }`}
-          >
-            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
-          <div className={`w-px h-3 mx-0.5 ${isDark ? 'bg-white/10' : 'bg-slate-400/30'}`} />
-          <TooltipProvider delayDuration={300}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  className={`p-1.5 rounded-md transition-all ${
-                    isDark
-                      ? 'text-slate-400 hover:bg-white/10 hover:text-slate-200'
-                      : 'text-slate-400 hover:bg-white/60 hover:shadow-sm hover:text-slate-600'
-                  }`}
-                  onClick={onSplitRight}
-                >
-                  <PanelRight className="w-4 h-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                <p>
-                  右切
-                  {getShortcut("split-right") && (
-                    <kbd className="ml-1.5 px-1 py-0.5 text-[11px] font-mono bg-white/10 border border-white/15 rounded opacity-80">
-                      {getShortcut("split-right")}
-                    </kbd>
-                  )}
-                </p>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  className={`p-1.5 rounded-md transition-all ${
-                    isDark
-                      ? 'text-slate-400 hover:bg-white/10 hover:text-slate-200'
-                      : 'text-slate-400 hover:bg-white/60 hover:shadow-sm hover:text-slate-600'
-                  }`}
-                  onClick={onSplitDown}
-                >
-                  <PanelBottom className="w-4 h-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                <p>
-                  下切
-                  {getShortcut("split-down") && (
-                    <kbd className="ml-1.5 px-1 py-0.5 text-[11px] font-mono bg-white/10 border border-white/15 rounded opacity-80">
-                      {getShortcut("split-down")}
-                    </kbd>
-                  )}
-                </p>
-              </TooltipContent>
-            </Tooltip>
-            {isBorderless && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    className={`p-1.5 rounded-md transition-all ${
-                      isDark
-                        ? 'text-slate-400 hover:bg-white/10 hover:text-slate-200'
-                        : 'text-slate-400 hover:bg-white/60 hover:shadow-sm hover:text-slate-600'
-                    }`}
-                    onClick={() => exitBorderless()}
-                  >
-                    <Maximize2 className="w-4 h-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  <p>退出无边框模式</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
-          </TooltipProvider>
-        </div>
       </div>
     </div>
   );

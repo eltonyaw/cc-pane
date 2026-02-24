@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,8 @@ interface ProxySectionProps {
 }
 
 export default function ProxySection({ value, onChange }: ProxySectionProps) {
+  const { t } = useTranslation("settings");
+
   function update<K extends keyof ProxySettings>(key: K, v: ProxySettings[K]) {
     onChange({ ...value, [key]: v });
   }
@@ -18,20 +21,20 @@ export default function ProxySection({ value, onChange }: ProxySectionProps) {
   async function testProxy() {
     try {
       await settingsService.testProxy();
-      toast.success("代理连接测试成功");
+      toast.success(t("proxyTestSuccess"));
     } catch (e) {
-      toast.error(`代理测试失败: ${e}`);
+      toast.error(t("proxyTestFailed", { error: e }));
     }
   }
 
   return (
     <div className="flex flex-col gap-3">
       <h3 className="text-[15px] font-semibold mb-1" style={{ color: "var(--app-text-primary)" }}>
-        代理设置
+        {t("proxyTitle")}
       </h3>
 
       <div className="flex items-center justify-between">
-        <Label>启用代理</Label>
+        <Label>{t("enableProxy")}</Label>
         <input
           type="checkbox"
           checked={value.enabled}
@@ -44,7 +47,7 @@ export default function ProxySection({ value, onChange }: ProxySectionProps) {
       {value.enabled && (
         <>
           <div className="flex flex-col gap-1">
-            <Label>代理类型</Label>
+            <Label>{t("proxyType")}</Label>
             <select
               value={value.proxyType}
               onChange={(e) => update("proxyType", e.target.value)}
@@ -67,56 +70,56 @@ export default function ProxySection({ value, onChange }: ProxySectionProps) {
                   border: "1px solid #fde047",
                 }}
               >
-                &#9888; SOCKS5 代理可能不被所有工具支持（如 Claude Code、npm）。建议使用 HTTP 代理，或在本地用代理客户端将 SOCKS5 转为 HTTP 代理。
+                &#9888; {t("socksWarning")}
               </div>
             )}
           </div>
 
           <div className="flex gap-2">
             <div className="flex flex-col gap-1 flex-1">
-              <Label>主机</Label>
+              <Label>{t("host")}</Label>
               <Input value={value.host} placeholder="127.0.0.1" onChange={(e) => update("host", e.target.value)} />
             </div>
             <div className="flex flex-col gap-1 w-28">
-              <Label>端口</Label>
+              <Label>{t("port")}</Label>
               <Input type="number" value={value.port} placeholder="7890" onChange={(e) => update("port", Number(e.target.value))} />
             </div>
           </div>
 
           <div className="flex gap-2">
             <div className="flex flex-col gap-1 flex-1">
-              <Label>用户名（可选）</Label>
+              <Label>{t("username")}</Label>
               <Input
                 value={value.username ?? ""}
-                placeholder="用户名"
+                placeholder={t("username")}
                 onChange={(e) => update("username", e.target.value || null)}
               />
             </div>
             <div className="flex flex-col gap-1 flex-1">
-              <Label>密码（可选）</Label>
+              <Label>{t("password")}</Label>
               <Input
                 type="password"
                 value={value.password ?? ""}
-                placeholder="密码"
+                placeholder={t("password")}
                 onChange={(e) => update("password", e.target.value || null)}
               />
             </div>
           </div>
 
           <div className="flex flex-col gap-1">
-            <Label>排除列表</Label>
+            <Label>{t("excludeList")}</Label>
             <Input
               value={value.noProxy ?? ""}
               placeholder="localhost,127.0.0.1"
               onChange={(e) => update("noProxy", e.target.value || null)}
             />
             <span className="text-[11px]" style={{ color: "var(--app-text-tertiary)" }}>
-              多个地址用逗号分隔
+              {t("excludeListHint")}
             </span>
           </div>
 
           <div>
-            <Button size="sm" variant="secondary" onClick={testProxy}>测试连接</Button>
+            <Button size="sm" variant="secondary" onClick={testProxy}>{t("testConnection")}</Button>
           </div>
         </>
       )}

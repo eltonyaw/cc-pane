@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Label } from "@/components/ui/label";
 import type { NotificationSettings } from "@/types";
 
@@ -7,6 +8,8 @@ interface NotificationSectionProps {
 }
 
 export default function NotificationSection({ value, onChange }: NotificationSectionProps) {
+  const { t } = useTranslation("settings");
+
   function update<K extends keyof NotificationSettings>(key: K, v: NotificationSettings[K]) {
     onChange({ ...value, [key]: v });
   }
@@ -14,14 +17,14 @@ export default function NotificationSection({ value, onChange }: NotificationSec
   return (
     <div className="flex flex-col gap-3">
       <h3 className="text-[15px] font-semibold mb-1" style={{ color: "var(--app-text-primary)" }}>
-        通知设置
+        {t("notificationTitle")}
       </h3>
       <p className="text-xs mb-3" style={{ color: "var(--app-text-tertiary)" }}>
-        窗口失焦时通过系统桌面通知提醒关键事件
+        {t("notificationDesc", { ns: "dialogs" })}
       </p>
 
       <div className="flex items-center justify-between">
-        <Label>启用通知</Label>
+        <Label>{t("enableNotification")}</Label>
         <input
           type="checkbox"
           checked={value.enabled}
@@ -32,7 +35,7 @@ export default function NotificationSection({ value, onChange }: NotificationSec
       </div>
 
       <div className={`flex items-center justify-between ${!value.enabled ? "opacity-50" : ""}`}>
-        <Label>会话退出时通知</Label>
+        <Label>{t("notifyOnExit")}</Label>
         <input
           type="checkbox"
           checked={value.onExit}
@@ -44,7 +47,7 @@ export default function NotificationSection({ value, onChange }: NotificationSec
       </div>
 
       <div className={`flex items-center justify-between ${!value.enabled ? "opacity-50" : ""}`}>
-        <Label>等待输入时通知</Label>
+        <Label>{t("notifyOnWaitingInput")}</Label>
         <input
           type="checkbox"
           checked={value.onWaitingInput}
@@ -56,7 +59,7 @@ export default function NotificationSection({ value, onChange }: NotificationSec
       </div>
 
       <div className={`flex items-center justify-between ${!value.enabled ? "opacity-50" : ""}`}>
-        <Label>仅在窗口失焦时通知</Label>
+        <Label>{t("notifyOnlyUnfocused")}</Label>
         <input
           type="checkbox"
           checked={value.onlyWhenUnfocused}

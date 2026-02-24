@@ -40,5 +40,9 @@
   "removeProjectTitle": "Remove Project",
   "removeProjectConfirm": "Are you sure you want to remove project \"{{name}}\" from the workspace?",
   "selectProjectDir": "Select project directory",
-  "selectScanDir": "Select root directory to scan"
+  "selectScanDir": "Select root directory to scan",
+  "systemReady": "System Ready",
+  "noLaunchRecords": "No launch records",
+  "importHint": "Click \"Import Project\" in a workspace",
+  "newHint": "Create a workspace first, then import projects"
 }

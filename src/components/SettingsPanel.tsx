@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { Settings, Globe, Terminal, Keyboard, Info, Cloud, Bell } from "lucide-react";
 import {
   Dialog,
@@ -23,23 +24,24 @@ interface SettingsPanelProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const sections = [
-  { id: "general", label: "通用", icon: Settings },
-  { id: "notification", label: "通知", icon: Bell },
-  { id: "provider", label: "Provider", icon: Cloud },
-  { id: "proxy", label: "代理", icon: Globe },
-  { id: "terminal", label: "终端", icon: Terminal },
-  { id: "shortcuts", label: "快捷键", icon: Keyboard },
-  { id: "about", label: "关于", icon: Info },
-];
-
 export default function SettingsPanel({ open, onOpenChange }: SettingsPanelProps) {
+  const { t } = useTranslation("settings");
   const settings = useSettingsStore((s) => s.settings);
   const saveSettings = useSettingsStore((s) => s.saveSettings);
   const getDefaults = useSettingsStore((s) => s.getDefaults);
 
   const [draft, setDraft] = useState<AppSettings>(getDefaults());
   const [activeSection, setActiveSection] = useState("general");
+
+  const sections = [
+    { id: "general", label: t("general"), icon: Settings },
+    { id: "notification", label: t("notification"), icon: Bell },
+    { id: "provider", label: t("provider"), icon: Cloud },
+    { id: "proxy", label: t("proxy"), icon: Globe },
+    { id: "terminal", label: t("terminal"), icon: Terminal },
+    { id: "shortcuts", label: t("shortcuts"), icon: Keyboard },
+    { id: "about", label: t("about"), icon: Info },
+  ];
 
   // 打开时同步设置
   useEffect(() => {
@@ -51,23 +53,23 @@ export default function SettingsPanel({ open, onOpenChange }: SettingsPanelProps
   async function handleSave() {
     try {
       await saveSettings(draft);
-      toast.success("设置已保存");
+      toast.success(t("saved"));
       onOpenChange(false);
     } catch (e) {
-      toast.error(`保存失败: ${e}`);
+      toast.error(t("saveFailed", { ns: "common", error: e }));
     }
   }
 
   function handleReset() {
     setDraft(getDefaults());
-    toast.info("已恢复默认设置（需点击保存生效）");
+    toast.info(t("resetDone"));
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="!max-w-[680px] !max-h-[520px] !p-0 flex flex-col overflow-hidden">
         <DialogHeader className="px-5 pt-4 pb-3" style={{ borderBottom: "1px solid var(--app-border)" }}>
-          <DialogTitle>设置</DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-1 overflow-hidden">
@@ -117,10 +119,10 @@ export default function SettingsPanel({ open, onOpenChange }: SettingsPanelProps
 
         {/* 底部操作 */}
         <div className="flex justify-between items-center px-5 py-3" style={{ borderTop: "1px solid var(--app-border)" }}>
-          <Button variant="ghost" size="sm" onClick={handleReset}>恢复默认</Button>
+          <Button variant="ghost" size="sm" onClick={handleReset}>{t("reset", { ns: "common" })}</Button>
           <div className="flex gap-2">
-            <Button variant="secondary" size="sm" onClick={() => onOpenChange(false)}>取消</Button>
-            <Button size="sm" onClick={handleSave}>保存</Button>
+            <Button variant="secondary" size="sm" onClick={() => onOpenChange(false)}>{t("cancel", { ns: "common" })}</Button>
+            <Button size="sm" onClick={handleSave}>{t("save", { ns: "common" })}</Button>
           </div>
         </div>
       </DialogContent>

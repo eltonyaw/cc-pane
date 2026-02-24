@@ -1,4 +1,5 @@
 import { Trash2, Terminal } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useThemeStore } from "@/stores";
 import { formatRelativeTime } from "@/utils";
 import type { LaunchRecord } from "@/services";
@@ -10,18 +11,30 @@ interface RecentLaunchesProps {
 }
 
 export default function RecentLaunches({ launchHistory, onOpenTerminal, onClearHistory }: RecentLaunchesProps) {
+  const { t } = useTranslation("sidebar");
   const isDark = useThemeStore((s) => s.isDark);
 
-  if (launchHistory.length === 0) return null;
+  if (launchHistory.length === 0) {
+    return (
+      <div className="px-3 py-3">
+        <span className={`text-[11px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+          {t("recentLaunches")}
+        </span>
+        <p className={`text-xs mt-3 ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
+          {t("noLaunchRecords")}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <>
       <div className="flex items-center justify-between px-3 py-3 mt-4 mb-1">
-        <span className={`text-[11px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>最近启动</span>
+        <span className={`text-[11px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{t("recentLaunches")}</span>
         <button
           className={`transition-colors p-1 rounded-md ${isDark ? 'text-slate-500 hover:bg-white/10 hover:text-slate-300' : 'text-slate-400 hover:bg-white/50 hover:text-red-500'}`}
           onClick={onClearHistory}
-          title="清空历史"
+          title={t("clearHistory")}
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>

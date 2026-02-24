@@ -1,16 +1,20 @@
+import { useTranslation } from "react-i18next";
+
 export default function AboutSection() {
+  const { t } = useTranslation("settings");
+
   return (
     <div className="flex flex-col gap-3">
       <h3 className="text-[15px] font-semibold mb-1" style={{ color: "var(--app-text-primary)" }}>
-        关于
+        {t("aboutTitle")}
       </h3>
 
       <div className="flex flex-col gap-2">
         {([
-          ["应用名称", "CC-Panes"],
-          ["版本", "0.1.0"],
-          ["描述", "Claude Code 多实例分屏管理"],
-          ["技术栈", "Tauri 2 + React 19 + TypeScript"],
+          [t("appName"), "CC-Panes"],
+          [t("version"), "0.1.0"],
+          [t("description"), t("appDescription")],
+          [t("techStack"), "Tauri 2 + React 19 + TypeScript"],
         ] as const).map(([label, value]) => (
           <div
             key={label}

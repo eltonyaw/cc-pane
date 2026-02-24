@@ -40,6 +40,7 @@
   "cursorBar": "Bar",
   "cursorBlink": "Cursor Blink",
   "scrollback": "Scrollback Lines",
+  "shellAutoDetect": "Auto-detect if empty",
 
   "shortcutsTitle": "Keyboard Shortcuts",
   "shortcutsHint": "Click a shortcut then press a new key combination to change it, press Esc to cancel",

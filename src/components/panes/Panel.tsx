@@ -1,5 +1,6 @@
 import { useMemo, useEffect, useCallback, useRef, memo } from "react";
-import { X, Terminal, Command } from "lucide-react";
+import { X, Terminal } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { Panel as PanelType } from "@/types";
 import { usePanesStore, useFullscreenStore, useThemeStore } from "@/stores";
 import { terminalService } from "@/services";
@@ -12,6 +13,7 @@ interface PanelProps {
 }
 
 export default memo(function Panel({ pane }: PanelProps) {
+  const { t } = useTranslation("panes");
   const activePaneId = usePanesStore((s) => s.activePaneId);
   const selectTab = usePanesStore((s) => s.selectTab);
   const closeTab = usePanesStore((s) => s.closeTab);
@@ -21,6 +23,7 @@ export default memo(function Panel({ pane }: PanelProps) {
   const addTab = usePanesStore((s) => s.addTab);
   const splitRight = usePanesStore((s) => s.splitRight);
   const splitDown = usePanesStore((s) => s.splitDown);
+  const splitAndMoveTab = usePanesStore((s) => s.splitAndMoveTab);
   const setActivePane = usePanesStore((s) => s.setActivePane);
   const updateTabSession = usePanesStore((s) => s.updateTabSession);
 
@@ -98,6 +101,16 @@ export default memo(function Panel({ pane }: PanelProps) {
     [pane.id, splitDown]
   );
 
+  const handleSplitAndMoveRight = useCallback(
+    (tabId: string) => splitAndMoveTab(pane.id, tabId, "right"),
+    [pane.id, splitAndMoveTab]
+  );
+
+  const handleSplitAndMoveDown = useCallback(
+    (tabId: string) => splitAndMoveTab(pane.id, tabId, "down"),
+    [pane.id, splitAndMoveTab]
+  );
+
   const handleFullscreen = useCallback(
     (tabId: string) => enterFullscreen(pane.id, tabId),
     [pane.id, enterFullscreen]
@@ -155,6 +168,8 @@ export default memo(function Panel({ pane }: PanelProps) {
         onSplitRight={handleSplitRight}
         onSplitDown={handleSplitDown}
         onFullscreen={handleFullscreen}
+        onSplitAndMoveRight={handleSplitAndMoveRight}
+        onSplitAndMoveDown={handleSplitAndMoveDown}
       />
 
       {/* 内容区 */}
@@ -179,6 +194,8 @@ export default memo(function Panel({ pane }: PanelProps) {
                 isActive={tab.id === pane.activeTabId && isActivePane}
                 workspaceName={tab.workspaceName}
                 providerId={tab.providerId}
+                workspacePath={tab.workspacePath}
+                launchClaude={tab.launchClaude}
                 onSessionCreated={(sid) => handleSessionCreated(tab.id, sid)}
               />
             )}
@@ -186,8 +203,8 @@ export default memo(function Panel({ pane }: PanelProps) {
         ))}
 
         {/* 空状态 */}
-        {activeTab && !activeTab.projectPath && (
-          <div className={`absolute inset-0 flex flex-col items-center justify-center select-none relative overflow-hidden ${
+        {(!activeTab || !activeTab.projectPath) && (
+          <div className={`absolute inset-0 flex flex-col items-center justify-center select-none overflow-hidden ${
             isDark ? 'bg-[#0F1117]' : 'bg-white/80'
           }`}>
             {/* 点阵背景 */}
@@ -212,20 +229,11 @@ export default memo(function Panel({ pane }: PanelProps) {
             </div>
 
             <h3 className={`text-xl font-medium mb-3 tracking-tight ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-              准备就绪
+              {t("ready")}
             </h3>
             <p className="text-slate-500 text-center max-w-sm leading-relaxed text-sm">
-              从左侧选择一个项目以启动终端
+              {t("selectProject")}
             </p>
-            <div className="mt-4">
-              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-slate-400 border transition-colors cursor-pointer ${
-                isDark ? 'bg-white/5 border-white/5' : 'bg-white/50 border-white/40 shadow-sm'
-              }`}>
-                <Command className="w-3 h-3" />
-                <span>K</span>
-              </span>
-              <span className="mx-2 text-slate-500 text-sm">to search</span>
-            </div>
           </div>
         )}
       </div>

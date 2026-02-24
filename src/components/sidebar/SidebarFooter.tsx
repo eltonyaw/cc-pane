@@ -1,4 +1,5 @@
 import { Pin, Minimize2, PanelTopDashed, Settings } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useThemeStore, useMiniModeStore, useBorderlessStore } from "@/stores";
 import { useWindowControl } from "@/hooks/useWindowControl";
 
@@ -8,6 +9,7 @@ interface SidebarFooterProps {
 }
 
 export default function SidebarFooter({ collapsed, onSettings }: SidebarFooterProps) {
+  const { t } = useTranslation("sidebar");
   const isDark = useThemeStore((s) => s.isDark);
   const enterMiniMode = useMiniModeStore((s) => s.enterMiniMode);
   const toggleBorderless = useBorderlessStore((s) => s.toggleBorderless);
@@ -36,27 +38,29 @@ export default function SidebarFooter({ collapsed, onSettings }: SidebarFooterPr
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
             <div className="absolute inset-0 w-2 h-2 rounded-full bg-emerald-500 blur-sm"></div>
           </div>
-          <span className={`text-xs font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>System Ready</span>
+          <span className={`text-xs font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+            {t("systemReady")}
+          </span>
         </div>
         <div className="flex items-center gap-1">
           <button
             className={`p-1 rounded-md transition-all ${isPinned ? 'text-[var(--app-accent)]' : ''} ${isDark ? 'text-slate-400 hover:bg-white/10 hover:text-slate-200' : 'text-slate-400 hover:bg-white/60 hover:text-slate-600'}`}
             onClick={togglePin}
-            title="窗口置顶"
+            title={t("alwaysOnTop")}
           >
             <Pin className={`w-3.5 h-3.5 ${isPinned ? 'rotate-45' : ''} transition-transform`} />
           </button>
           <button
             className={`p-1 rounded-md transition-all ${isDark ? 'text-slate-400 hover:bg-white/10 hover:text-slate-200' : 'text-slate-400 hover:bg-white/60 hover:text-slate-600'}`}
             onClick={() => enterMiniMode()}
-            title="迷你模式"
+            title={t("miniMode")}
           >
             <Minimize2 className="w-3.5 h-3.5" />
           </button>
           <button
             className={`p-1 rounded-md transition-all ${isDark ? 'text-slate-400 hover:bg-white/10 hover:text-slate-200' : 'text-slate-400 hover:bg-white/60 hover:text-slate-600'}`}
             onClick={() => toggleBorderless()}
-            title="无边框模式"
+            title={t("borderlessMode")}
           >
             <PanelTopDashed className="w-3.5 h-3.5" />
           </button>

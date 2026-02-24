@@ -18,5 +18,7 @@
   "searchPlaceholder": "搜索...",
   "searchPrev": "上一个 (Shift+Enter)",
   "searchNext": "下一个 (Enter)",
-  "searchClose": "关闭 (Esc)"
+  "searchClose": "关闭 (Esc)",
+  "splitAndMoveRight": "拆分并右移",
+  "splitAndMoveDown": "拆分并下移"
 }

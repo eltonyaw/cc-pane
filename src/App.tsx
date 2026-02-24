@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Toaster, toast } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Sidebar from "@/components/Sidebar";
+import GlobalTopBar from "@/components/GlobalTopBar";
 import MiniView from "@/components/MiniView";
 import { PaneContainer } from "@/components/panes";
 import SettingsPanel from "@/components/SettingsPanel";
@@ -21,6 +22,7 @@ import {
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { historyService, terminalService } from "@/services";
 import { waitForTauri } from "@/utils";
+import i18n from "@/i18n";
 
 export default function App() {
   const isDark = useThemeStore((s) => s.isDark);
@@ -46,9 +48,15 @@ export default function App() {
   // 初始化设置 + TerminalStatusStore（等待 Tauri IPC 就绪）
   useEffect(() => {
     let cancelled = false;
-    waitForTauri().then((ready) => {
+    waitForTauri().then(async (ready) => {
       if (cancelled || !ready) return;
-      useSettingsStore.getState().loadSettings();
+      await useSettingsStore.getState().loadSettings();
+      if (cancelled) return;
+      // 从 Settings 同步语言到 i18n
+      const lang = useSettingsStore.getState().settings?.general.language;
+      if (lang && lang !== i18n.language) {
+        i18n.changeLanguage(lang);
+      }
       useTerminalStatusStore.getState().init();
     });
     return () => {
@@ -151,9 +159,9 @@ export default function App() {
 
   // 打开终端
   const handleOpenTerminal = useCallback(
-    (path: string, workspaceName?: string, providerId?: string) => {
+    (path: string, workspaceName?: string, providerId?: string, workspacePath?: string, launchClaude?: boolean) => {
       const projectId = `proj-${crypto.randomUUID()}`;
-      openProject(projectId, path, undefined, workspaceName, providerId);
+      openProject(projectId, path, undefined, workspaceName, providerId, workspacePath, launchClaude);
       const name = path.split(/[/\\]/).pop() || path;
       historyService.add(projectId, name, path).catch(console.error);
     },
@@ -161,11 +169,11 @@ export default function App() {
   );
 
   const handleImport = useCallback(() => {
-    toast.info("请在工作空间中点击「导入项目」");
+    toast.info(i18n.t("importHint", { ns: "sidebar" }));
   }, []);
 
   const handleNew = useCallback(() => {
-    toast.info("请先创建工作空间，然后导入项目");
+    toast.info(i18n.t("newHint", { ns: "sidebar" }));
   }, []);
 
   const handleSettings = useCallback(() => {
@@ -219,6 +227,12 @@ export default function App() {
           <MiniView />
         ) : (
           <>
+            <GlobalTopBar
+              sidebarCollapsed={sidebarCollapsed}
+              onToggleSidebar={() => setSidebarCollapsed((prev) => !prev)}
+              onImport={handleImport}
+              onNew={handleNew}
+            />
             {/* 主区域：Sidebar | 主内容区 */}
             <div className="flex-1 flex overflow-hidden relative z-[1]">
               {/* 侧边栏 */}
@@ -226,8 +240,6 @@ export default function App() {
                 collapsed={sidebarCollapsed}
                 onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
                 onOpenTerminal={handleOpenTerminal}
-                onImport={handleImport}
-                onNew={handleNew}
                 onSettings={handleSettings}
               />
 

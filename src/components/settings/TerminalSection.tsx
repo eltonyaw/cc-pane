@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { TerminalSettings } from "@/types";
@@ -8,6 +9,7 @@ interface TerminalSectionProps {
 }
 
 export default function TerminalSection({ value, onChange }: TerminalSectionProps) {
+  const { t } = useTranslation("settings");
 
   function update<K extends keyof TerminalSettings>(key: K, v: TerminalSettings[K]) {
     onChange({ ...value, [key]: v });
@@ -16,12 +18,12 @@ export default function TerminalSection({ value, onChange }: TerminalSectionProp
   return (
     <div className="flex flex-col gap-3">
       <h3 className="text-[15px] font-semibold mb-1" style={{ color: "var(--app-text-primary)" }}>
-        终端设置
+        {t("terminalTitle")}
       </h3>
 
       <div className="flex gap-2 items-end">
         <div className="flex flex-col gap-1 w-28">
-          <Label>字号</Label>
+          <Label>{t("fontSize")}</Label>
           <Input
             type="number"
             value={value.fontSize}
@@ -29,7 +31,7 @@ export default function TerminalSection({ value, onChange }: TerminalSectionProp
           />
         </div>
         <div className="flex flex-col gap-1 flex-1">
-          <Label>字体</Label>
+          <Label>{t("fontFamily")}</Label>
           <Input
             value={value.fontFamily}
             onChange={(e) => update("fontFamily", e.target.value)}
@@ -39,7 +41,7 @@ export default function TerminalSection({ value, onChange }: TerminalSectionProp
 
       <div className="flex gap-2 items-end">
         <div className="flex flex-col gap-1 flex-1">
-          <Label>光标样式</Label>
+          <Label>{t("cursorStyle")}</Label>
           <select
             value={value.cursorStyle}
             onChange={(e) => update("cursorStyle", e.target.value)}
@@ -50,13 +52,13 @@ export default function TerminalSection({ value, onChange }: TerminalSectionProp
               color: "var(--app-text-primary)",
             }}
           >
-            <option value="block">方块 (Block)</option>
-            <option value="underline">下划线 (Underline)</option>
-            <option value="bar">竖线 (Bar)</option>
+            <option value="block">{t("cursorBlock")}</option>
+            <option value="underline">{t("cursorUnderline")}</option>
+            <option value="bar">{t("cursorBar")}</option>
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <Label>光标闪烁</Label>
+          <Label>{t("cursorBlink")}</Label>
           <div className="flex items-center h-9">
             <input
               type="checkbox"
@@ -71,7 +73,7 @@ export default function TerminalSection({ value, onChange }: TerminalSectionProp
 
       <div className="flex gap-2 items-end">
         <div className="flex flex-col gap-1 w-40">
-          <Label>回滚行数</Label>
+          <Label>{t("scrollback")}</Label>
           <Input
             type="number"
             value={value.scrollback}
@@ -84,7 +86,7 @@ export default function TerminalSection({ value, onChange }: TerminalSectionProp
           <Input
             value={value.shell ?? ""}
             onChange={(e) => update("shell", e.target.value || null)}
-            placeholder="留空则自动检测"
+            placeholder={t("shellAutoDetect")}
           />
         </div>
       </div>

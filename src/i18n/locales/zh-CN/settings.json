@@ -40,6 +40,7 @@
   "cursorBar": "竖线 (Bar)",
   "cursorBlink": "光标闪烁",
   "scrollback": "回滚行数",
+  "shellAutoDetect": "留空则自动检测",
 
   "shortcutsTitle": "快捷键设置",
   "shortcutsHint": "点击快捷键后按下新组合键进行修改，按 Esc 取消",
