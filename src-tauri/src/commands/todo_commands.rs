@@ -73,6 +73,21 @@ pub fn get_todo_stats(
     Ok(service.get_stats(scope, scope_ref)?)
 }
 
+#[tauri::command]
+pub fn toggle_todo_my_day(
+    service: State<'_, Arc<TodoService>>,
+    id: String,
+) -> AppResult<TodoItem> {
+    Ok(service.toggle_my_day(&id)?)
+}
+
+#[tauri::command]
+pub fn check_todo_reminders(
+    service: State<'_, Arc<TodoService>>,
+) -> AppResult<Vec<TodoItem>> {
+    Ok(service.get_due_reminders()?)
+}
+
 // ============ Subtask 命令 (5 个) ============
 
 #[tauri::command]

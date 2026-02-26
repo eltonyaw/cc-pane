@@ -29,6 +29,9 @@ Thumbs.db
 # Tauri 生成文件
 src-tauri/gen/
 
+# Hook 二进制（构建产物）
+src-tauri/binaries/
+
 # 参考项目与归档（不纳入版本控制）
 _reference/
 _archived_v1/

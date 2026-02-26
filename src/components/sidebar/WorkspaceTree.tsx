@@ -338,6 +338,15 @@ export default function WorkspaceTree({
     onOpenTerminal(project.path, ws?.name, ws?.providerId, ws?.path, true);
   }
 
+  function handleOpenClaudeWithProvider(
+    projectPath: string,
+    providerId: string | undefined,
+    workspaceName?: string,
+    workspacePath?: string
+  ) {
+    onOpenTerminal(projectPath, workspaceName, providerId, workspacePath, true);
+  }
+
   async function handleSetWorkspacePath(ws: Workspace) {
     try {
       const selected = await open({ directory: true, multiple: false, title: "选择工作空间根目录" });
@@ -487,9 +496,32 @@ export default function WorkspaceTree({
                 <ContextMenuItem disabled={ws.projects.length === 0} onClick={() => handleOpenWorkspace(ws)}>
                   <Terminal size={14} className="mr-2" /> {t("openTerminal")}
                 </ContextMenuItem>
-                <ContextMenuItem disabled={ws.projects.length === 0} onClick={() => handleOpenClaudeWorkspace(ws)}>
-                  <Terminal size={14} className="mr-2" /> {t("openClaudeCode")}
-                </ContextMenuItem>
+                <ContextMenuSub>
+                  <ContextMenuSubTrigger disabled={ws.projects.length === 0}>
+                    <Terminal size={14} className="mr-2" /> {t("openClaudeCode")}
+                  </ContextMenuSubTrigger>
+                  <ContextMenuSubContent className="w-48">
+                    <ContextMenuItem onClick={() => handleOpenClaudeWorkspace(ws)}>
+                      {t("useWorkspaceProvider")}
+                      {ws.providerId && providerList.find(p => p.id === ws.providerId) && (
+                        <span className="ml-auto text-[10px] opacity-60">
+                          {providerList.find(p => p.id === ws.providerId)?.name}
+                        </span>
+                      )}
+                    </ContextMenuItem>
+                    {providerList.length > 0 && <ContextMenuSeparator />}
+                    {providerList.map((p) => (
+                      <ContextMenuItem
+                        key={p.id}
+                        onClick={() => handleOpenClaudeWithProvider(
+                          ws.projects[0].path, p.id, ws.name, ws.path
+                        )}
+                      >
+                        {p.name}
+                      </ContextMenuItem>
+                    ))}
+                  </ContextMenuSubContent>
+                </ContextMenuSub>
                 <ContextMenuItem
                   disabled={!ws.path && ws.projects.length === 0}
                   onClick={() => handleRevealFolder(ws.path || ws.projects[0]?.path)}
@@ -620,9 +652,32 @@ export default function WorkspaceTree({
                         <ContextMenuItem onClick={() => handleOpenProject(project, ws)}>
                           <Terminal size={14} className="mr-2" /> {t("openTerminal")}
                         </ContextMenuItem>
-                        <ContextMenuItem onClick={() => handleOpenClaudeProject(project, ws)}>
-                          <Terminal size={14} className="mr-2" /> {t("openClaudeCode")}
-                        </ContextMenuItem>
+                        <ContextMenuSub>
+                          <ContextMenuSubTrigger>
+                            <Terminal size={14} className="mr-2" /> {t("openClaudeCode")}
+                          </ContextMenuSubTrigger>
+                          <ContextMenuSubContent className="w-48">
+                            <ContextMenuItem onClick={() => handleOpenClaudeProject(project, ws)}>
+                              {t("useWorkspaceProvider")}
+                              {ws?.providerId && providerList.find(p => p.id === ws.providerId) && (
+                                <span className="ml-auto text-[10px] opacity-60">
+                                  {providerList.find(p => p.id === ws.providerId)?.name}
+                                </span>
+                              )}
+                            </ContextMenuItem>
+                            {providerList.length > 0 && <ContextMenuSeparator />}
+                            {providerList.map((p) => (
+                              <ContextMenuItem
+                                key={p.id}
+                                onClick={() => handleOpenClaudeWithProvider(
+                                  project.path, p.id, ws?.name, ws?.path
+                                )}
+                              >
+                                {p.name}
+                              </ContextMenuItem>
+                            ))}
+                          </ContextMenuSubContent>
+                        </ContextMenuSub>
                         <ContextMenuItem onClick={() => handleRevealFolder(project.path)}>
                           <FolderOpen size={14} className="mr-2" /> {t("openFolder")}
                         </ContextMenuItem>

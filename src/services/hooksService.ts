@@ -1,5 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
 
+export interface HookStatus {
+  name: string;
+  label: string;
+  enabled: boolean;
+}
+
 /**
  * Hooks 服务 - 管理 Claude Code hooks 脚本
  */
@@ -12,17 +18,45 @@ export const hooksService = {
   },
 
   /**
-   * 启用 hooks
+   * 启用 hooks（全部）
    */
   async enable(projectPath: string): Promise<void> {
     return invoke("enable_hooks", { projectPath });
   },
 
   /**
-   * 禁用 hooks
+   * 禁用 hooks（全部）
    */
   async disable(projectPath: string): Promise<void> {
     return invoke("disable_hooks", { projectPath });
+  },
+
+  /**
+   * 查询各 hook 的启用状态
+   */
+  async getStatus(projectPath: string): Promise<HookStatus[]> {
+    return invoke<HookStatus[]>("get_hooks_status", { projectPath });
+  },
+
+  /**
+   * 启用单个 hook
+   */
+  async enableHook(projectPath: string, hookName: string): Promise<void> {
+    return invoke("enable_hook", { projectPath, hookName });
+  },
+
+  /**
+   * 禁用单个 hook
+   */
+  async disableHook(projectPath: string, hookName: string): Promise<void> {
+    return invoke("disable_hook", { projectPath, hookName });
+  },
+
+  /**
+   * 启用所有 hooks
+   */
+  async enableAll(projectPath: string): Promise<void> {
+    return invoke("enable_all_hooks", { projectPath });
   },
 
   /**

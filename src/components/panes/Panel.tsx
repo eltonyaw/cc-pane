@@ -234,6 +234,7 @@ export default memo(function Panel({ pane }: PanelProps) {
                 providerId={tab.providerId}
                 workspacePath={tab.workspacePath}
                 launchClaude={tab.launchClaude}
+                resumeId={tab.resumeId}
                 onSessionCreated={(sid) => handleSessionCreated(tab.id, sid)}
               />
             )}

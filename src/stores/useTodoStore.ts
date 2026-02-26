@@ -35,6 +35,9 @@ interface TodoState {
   // 当前选中
   selectedTodo: TodoItem | null;
 
+  // 视图模式
+  viewMode: "all" | "my_day";
+
   // 打开时的上下文
   contextScope: TodoScope | null;
   contextScopeRef: string | null;
@@ -54,6 +57,8 @@ interface TodoState {
   setSearchText: (text: string) => void;
   setContext: (scope: TodoScope | null, scopeRef: string | null) => void;
   reorder: (todoIds: string[]) => Promise<void>;
+  setViewMode: (mode: "all" | "my_day") => void;
+  toggleMyDay: (id: string) => Promise<void>;
   loadStats: () => Promise<void>;
   addSubtask: (todoId: string, title: string) => Promise<void>;
   toggleSubtask: (subtaskId: string) => Promise<void>;
@@ -71,6 +76,7 @@ const INITIAL_STATE = {
   filterPriority: null as TodoPriority | null,
   searchText: "",
   selectedTodo: null as TodoItem | null,
+  viewMode: "all" as "all" | "my_day",
   contextScope: null as TodoScope | null,
   contextScopeRef: null as string | null,
   stats: null as TodoStats | null,
@@ -85,13 +91,14 @@ export const useTodoStore = create<TodoState>()(
         state.loading = true;
       });
       try {
-        const { filterStatus, filterScope, filterPriority, searchText, contextScope, contextScopeRef } = get();
+        const { filterStatus, filterScope, filterPriority, searchText, contextScope, contextScopeRef, viewMode } = get();
         const mergedQuery: TodoQuery = {
           status: query?.status ?? filterStatus ?? undefined,
           priority: query?.priority ?? filterPriority ?? undefined,
           scope: query?.scope ?? filterScope ?? contextScope ?? undefined,
           scopeRef: query?.scopeRef ?? contextScopeRef ?? undefined,
           search: query?.search ?? (searchText.trim() || undefined),
+          myDay: viewMode === "my_day" ? true : undefined,
           limit: query?.limit ?? 100,
           offset: query?.offset ?? 0,
           ...query,
@@ -184,6 +191,26 @@ export const useTodoStore = create<TodoState>()(
     reorder: async (todoIds) => {
       await todoService.reorder(todoIds);
       await get().loadList();
+    },
+
+    setViewMode: (mode) => {
+      set((state) => {
+        state.viewMode = mode;
+      });
+      get().loadList();
+    },
+
+    toggleMyDay: async (id) => {
+      await todoService.toggleMyDay(id);
+      await get().loadList();
+      // 更新选中项
+      const { selectedTodo } = get();
+      if (selectedTodo?.id === id) {
+        const updated = await todoService.get(id);
+        set((state) => {
+          state.selectedTodo = updated;
+        });
+      }
     },
 
     loadStats: async () => {

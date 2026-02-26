@@ -99,6 +99,19 @@ impl Database {
         )
         .map_err(|e| AppError::from(format!("Failed to create todo_subtasks table: {}", e)))?;
 
+        // 迁移：为 launch_history 表添加 claude_session_id、last_prompt、workspace_name、workspace_path 字段
+        let _ = conn.execute("ALTER TABLE launch_history ADD COLUMN claude_session_id TEXT", []);
+        let _ = conn.execute("ALTER TABLE launch_history ADD COLUMN last_prompt TEXT", []);
+        let _ = conn.execute("ALTER TABLE launch_history ADD COLUMN workspace_name TEXT", []);
+        let _ = conn.execute("ALTER TABLE launch_history ADD COLUMN workspace_path TEXT", []);
+        let _ = conn.execute("ALTER TABLE launch_history ADD COLUMN launch_cwd TEXT", []);
+
+        // 迁移：为 todos 表添加 my_day、my_day_date、reminder_at、recurrence 字段
+        let _ = conn.execute("ALTER TABLE todos ADD COLUMN my_day INTEGER DEFAULT 0", []);
+        let _ = conn.execute("ALTER TABLE todos ADD COLUMN my_day_date TEXT", []);
+        let _ = conn.execute("ALTER TABLE todos ADD COLUMN reminder_at TEXT", []);
+        let _ = conn.execute("ALTER TABLE todos ADD COLUMN recurrence TEXT", []);
+
         Ok(())
     }
 

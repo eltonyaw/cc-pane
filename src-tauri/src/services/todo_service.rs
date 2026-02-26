@@ -41,6 +41,10 @@ impl TodoService {
             scope_ref: req.scope_ref,
             tags: req.tags.unwrap_or_default(),
             due_date: req.due_date,
+            my_day: false,
+            my_day_date: None,
+            reminder_at: req.reminder_at,
+            recurrence: req.recurrence,
             sort_order,
             created_at: now.clone(),
             updated_at: now,
@@ -65,14 +69,87 @@ impl TodoService {
             }
         }
 
+        // 获取旧记录，用于判断是否需要触发重复任务
+        let old_todo = self.repo.get(id)?
+            .ok_or_else(|| serde_json::json!({"code": EC::TODO_NOT_FOUND, "message": format!("Todo {} not found", id), "params": {"id": id}}).to_string())?;
+
         let updated = self.repo.update(id, &req)?;
         if !updated {
             return Err(serde_json::json!({"code": EC::TODO_NOT_FOUND, "message": format!("Todo {} not found", id), "params": {"id": id}}).to_string());
         }
 
+        // 重复任务：状态变为 done 且有 recurrence 时，自动创建下一个实例
+        let is_becoming_done = req.status.as_ref() == Some(&TodoStatus::Done)
+            && old_todo.status != TodoStatus::Done;
+        if is_becoming_done {
+            if let Some(ref recurrence) = old_todo.recurrence {
+                if !recurrence.is_empty() {
+                    let _ = self.create_next_recurrence(&old_todo, recurrence);
+                }
+            }
+        }
+
         self.repo
             .get(id)?
             .ok_or_else(|| serde_json::json!({"code": EC::TODO_NOT_FOUND, "message": format!("Todo {} not found", id), "params": {"id": id}}).to_string())
+    }
+
+    /// 根据重复规则创建下一个 Todo 实例
+    fn create_next_recurrence(&self, old: &TodoItem, recurrence: &str) -> Result<TodoItem, String> {
+        use chrono::{NaiveDate, Duration, Months};
+
+        // 计算下一个 due_date
+        let next_due = old.due_date.as_ref().and_then(|d| {
+            // 支持 ISO 8601 日期（可能包含时间部分）
+            let date_str = if d.len() >= 10 { &d[..10] } else { d };
+            NaiveDate::parse_from_str(date_str, "%Y-%m-%d").ok()
+        }).map(|date| {
+            let next = match recurrence {
+                "daily" => date + Duration::days(1),
+                "weekly" => date + Duration::weeks(1),
+                "monthly" => date.checked_add_months(Months::new(1)).unwrap_or(date + Duration::days(30)),
+                _ => date + Duration::days(1),
+            };
+            next.format("%Y-%m-%d").to_string()
+        });
+
+        // 计算下一个 reminder_at（保持与 due_date 相同的偏移量）
+        let next_reminder = if let (Some(ref due), Some(ref reminder)) = (&old.due_date, &old.reminder_at) {
+            if let (Ok(due_dt), Ok(rem_dt)) = (
+                chrono::DateTime::parse_from_rfc3339(due),
+                chrono::DateTime::parse_from_rfc3339(reminder),
+            ) {
+                let offset = rem_dt.signed_duration_since(due_dt);
+                next_due.as_ref().and_then(|nd| {
+                    NaiveDate::parse_from_str(nd, "%Y-%m-%d").ok().map(|d| {
+                        let base = d.and_hms_opt(0, 0, 0)
+                            .unwrap()
+                            .and_local_timezone(chrono::Utc)
+                            .unwrap();
+                        (base + offset).to_rfc3339()
+                    })
+                })
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        let req = CreateTodoRequest {
+            title: old.title.clone(),
+            description: old.description.clone(),
+            status: Some(TodoStatus::Todo),
+            priority: Some(old.priority.clone()),
+            scope: Some(old.scope.clone()),
+            scope_ref: old.scope_ref.clone(),
+            tags: if old.tags.is_empty() { None } else { Some(old.tags.clone()) },
+            due_date: next_due,
+            reminder_at: next_reminder,
+            recurrence: Some(recurrence.to_string()),
+        };
+
+        self.create_todo(req)
     }
 
     /// 删除 Todo
@@ -111,6 +188,34 @@ impl TodoService {
     ) -> Result<TodoStats, String> {
         self.repo
             .stats(scope.as_ref(), scope_ref.as_deref())
+    }
+
+    /// 切换"我的一天"状态
+    pub fn toggle_my_day(&self, id: &str) -> Result<TodoItem, String> {
+        let todo = self
+            .repo
+            .get(id)?
+            .ok_or_else(|| serde_json::json!({"code": EC::TODO_NOT_FOUND, "message": format!("Todo {} not found", id), "params": {"id": id}}).to_string())?;
+
+        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let new_my_day = !todo.my_day || todo.my_day_date.as_deref() != Some(&today);
+
+        let req = UpdateTodoRequest {
+            my_day: Some(new_my_day),
+            my_day_date: Some(if new_my_day { today } else { String::new() }),
+            ..Default::default()
+        };
+
+        self.repo.update(id, &req)?;
+        self.repo
+            .get(id)?
+            .ok_or_else(|| serde_json::json!({"code": EC::TODO_NOT_FOUND, "message": format!("Todo {} not found", id), "params": {"id": id}}).to_string())
+    }
+
+    /// 获取到期提醒的 Todo
+    pub fn get_due_reminders(&self) -> Result<Vec<TodoItem>, String> {
+        let now = chrono::Utc::now().to_rfc3339();
+        self.repo.get_due_reminders(&now)
     }
 
     // ============ 子任务操作 ============
@@ -197,13 +302,7 @@ mod tests {
         let service = setup();
         let req = CreateTodoRequest {
             title: "测试任务".to_string(),
-            description: None,
-            status: None,
-            priority: None,
-            scope: None,
-            scope_ref: None,
-            tags: None,
-            due_date: None,
+            ..Default::default()
         };
         let todo = service.create_todo(req).unwrap();
         assert_eq!(todo.title, "测试任务");

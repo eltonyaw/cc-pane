@@ -21,6 +21,9 @@ describe("historyService", () => {
         projectId: "proj-1",
         projectName: "My Project",
         projectPath: "/path/to/project",
+        workspaceName: null,
+        workspacePath: null,
+        launchCwd: null,
       });
     });
   });

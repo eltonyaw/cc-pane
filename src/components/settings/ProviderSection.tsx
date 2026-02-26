@@ -1,12 +1,14 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { toast } from "sonner";
-import { Plus, Trash2, Star, Pencil } from "lucide-react";
+import { Plus, Trash2, Star, Pencil, FolderOpen, FileText, ExternalLink, Play } from "lucide-react";
+import { open } from "@tauri-apps/plugin-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useProvidersStore } from "@/stores";
-import { PROVIDER_TYPE_META, type Provider, type ProviderType } from "@/types/provider";
+import { useProvidersStore, useWorkspacesStore, useDialogStore } from "@/stores";
+import { PROVIDER_TYPE_META, type Provider, type ProviderType, type ConfigDirInfo } from "@/types/provider";
+import { providerService } from "@/services/providerService";
 
 interface FormState {
   name: string;
@@ -16,6 +18,7 @@ interface FormState {
   region: string;
   projectId: string;
   awsProfile: string;
+  configDir: string;
 }
 
 const emptyForm: FormState = {
@@ -26,6 +29,7 @@ const emptyForm: FormState = {
   region: "",
   projectId: "",
   awsProfile: "",
+  configDir: "",
 };
 
 export default function ProviderSection() {
@@ -39,16 +43,28 @@ export default function ProviderSection() {
   const [editing, setEditing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>({ ...emptyForm });
+  const [configDirInfo, setConfigDirInfo] = useState<ConfigDirInfo | null>(null);
 
   const currentMeta = useMemo(() => PROVIDER_TYPE_META[form.providerType], [form.providerType]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadProviders(); }, []);
 
+  const loadConfigDirInfo = useCallback(async (dir: string) => {
+    if (!dir) { setConfigDirInfo(null); return; }
+    try {
+      const info = await providerService.readConfigDirInfo(dir);
+      setConfigDirInfo(info);
+    } catch {
+      setConfigDirInfo(null);
+    }
+  }, []);
+
   function resetForm() {
     setForm({ ...emptyForm });
     setEditing(false);
     setEditingId(null);
+    setConfigDirInfo(null);
   }
 
   function handleNew() {
@@ -58,6 +74,7 @@ export default function ProviderSection() {
 
   function handleEdit(p: Provider) {
     setEditingId(p.id);
+    const configDir = p.configDir || "";
     setForm({
       name: p.name,
       providerType: p.providerType,
@@ -66,8 +83,10 @@ export default function ProviderSection() {
       region: p.region || "",
       projectId: p.projectId || "",
       awsProfile: p.awsProfile || "",
+      configDir,
     });
     setEditing(true);
+    if (configDir) loadConfigDirInfo(configDir);
   }
 
   async function handleSave() {
@@ -82,6 +101,7 @@ export default function ProviderSection() {
         region: form.region || null,
         projectId: form.projectId || null,
         awsProfile: form.awsProfile || null,
+        configDir: form.configDir || null,
         isDefault: false,
       };
       if (editingId) {
@@ -107,6 +127,21 @@ export default function ProviderSection() {
     try { await setDefault(id); toast.success("已设为默认"); } catch (e) { toast.error(`设置失败: ${e}`); }
   }
 
+  function handleLaunchWithProvider(providerId: string) {
+    const ws = useWorkspacesStore.getState().selectedWorkspace();
+    if (!ws || ws.projects.length === 0) {
+      toast.error("请先在侧边栏选中一个工作空间");
+      return;
+    }
+    useDialogStore.getState().setPendingLaunch({
+      path: ws.projects[0].path,
+      workspaceName: ws.name,
+      providerId,
+      workspacePath: ws.path,
+    });
+    useDialogStore.getState().closeSettings();
+  }
+
   function getTypeLabel(pt: ProviderType): string {
     return PROVIDER_TYPE_META[pt]?.label || pt;
   }
@@ -124,7 +159,24 @@ export default function ProviderSection() {
     if (!fields.includes("region")) updates.region = "";
     if (!fields.includes("projectId")) updates.projectId = "";
     if (!fields.includes("awsProfile")) updates.awsProfile = "";
+    if (!fields.includes("configDir")) { updates.configDir = ""; setConfigDirInfo(null); }
     updateForm(updates);
+  }
+
+  async function handleBrowseConfigDir() {
+    const selected = await open({ directory: true, multiple: false, title: "选择 Claude Code 配置目录" });
+    if (selected) {
+      updateForm({ configDir: selected as string });
+      loadConfigDirInfo(selected as string);
+    }
+  }
+
+  async function handleOpenInExplorer(path: string) {
+    try {
+      await providerService.openPathInExplorer(path);
+    } catch (e) {
+      toast.error(`打开失败: ${e}`);
+    }
   }
 
   return (
@@ -149,9 +201,17 @@ export default function ProviderSection() {
                 {p.name}
                 {p.isDefault && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">默认</Badge>}
               </div>
-              <div className="text-[11px]" style={{ color: "var(--app-text-tertiary)" }}>{getTypeLabel(p.providerType)}</div>
+              <div className="text-[11px]" style={{ color: "var(--app-text-tertiary)" }}>
+                {getTypeLabel(p.providerType)}
+                {p.providerType === "config_profile" && p.configDir && (
+                  <span className="ml-1.5 opacity-70" title={p.configDir}>
+                    · {p.configDir.length > 40 ? `...${p.configDir.slice(-37)}` : p.configDir}
+                  </span>
+                )}
+              </div>
             </div>
             <div className="flex gap-0.5">
+              <Button variant="ghost" size="sm" onClick={() => handleLaunchWithProvider(p.id)} title="使用此 Provider 启动 Claude Code"><Play size={14} /></Button>
               {!p.isDefault && (
                 <Button variant="ghost" size="sm" onClick={() => handleSetDefault(p.id)} title="设为默认"><Star size={14} /></Button>
               )}
@@ -229,6 +289,74 @@ export default function ProviderSection() {
             <div className="flex flex-col gap-1">
               <Label>Vertex Project ID</Label>
               <Input value={form.projectId} onChange={(e) => updateForm({ projectId: e.target.value })} placeholder="my-gcp-project" />
+            </div>
+          )}
+
+          {currentMeta.fields.includes("configDir") && (
+            <div className="flex flex-col gap-1.5">
+              <Label>配置目录</Label>
+              <div className="flex gap-1.5">
+                <Input
+                  value={form.configDir}
+                  onChange={(e) => {
+                    updateForm({ configDir: e.target.value });
+                    if (e.target.value) loadConfigDirInfo(e.target.value);
+                    else setConfigDirInfo(null);
+                  }}
+                  placeholder="例如：C:\Users\xxx\.claude-profile-a"
+                  className="flex-1"
+                />
+                <Button variant="outline" size="sm" onClick={handleBrowseConfigDir} className="shrink-0">
+                  <FolderOpen size={14} className="mr-1" /> 浏览
+                </Button>
+              </div>
+
+              {form.configDir && configDirInfo && (
+                <div
+                  className="flex flex-col gap-1.5 p-2.5 rounded text-[12px]"
+                  style={{ background: "var(--app-content)", border: "1px solid var(--app-border)" }}
+                >
+                  <div className="flex flex-col gap-0.5">
+                    {configDirInfo.files.map((f) => (
+                      <div key={f} className="flex items-center gap-1.5" style={{ color: "var(--app-text-secondary)" }}>
+                        <FileText size={12} className="shrink-0" />
+                        <span>{f}</span>
+                        {f === "settings.json" && (
+                          <Badge variant={configDirInfo.hasSettings ? "secondary" : "destructive"} className="text-[9px] px-1 py-0 ml-auto">
+                            {configDirInfo.hasSettings ? "✓" : "✗"}
+                          </Badge>
+                        )}
+                        {f === ".credentials.json" && (
+                          <Badge variant={configDirInfo.hasCredentials ? "secondary" : "destructive"} className="text-[9px] px-1 py-0 ml-auto">
+                            {configDirInfo.hasCredentials ? "✓" : "✗"}
+                          </Badge>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {configDirInfo.settingsSummary && (
+                    <div className="text-[11px] pt-1" style={{ color: "var(--app-text-tertiary)", borderTop: "1px solid var(--app-border)" }}>
+                      {configDirInfo.settingsSummary}
+                    </div>
+                  )}
+                  <div className="flex gap-1.5 pt-1" style={{ borderTop: "1px solid var(--app-border)" }}>
+                    <Button variant="ghost" size="sm" className="h-6 text-[11px] px-2" onClick={() => handleOpenInExplorer(form.configDir)}>
+                      <ExternalLink size={12} className="mr-1" /> 打开目录
+                    </Button>
+                    {configDirInfo.hasSettings && (
+                      <Button variant="ghost" size="sm" className="h-6 text-[11px] px-2" onClick={() => handleOpenInExplorer(form.configDir + "/settings.json")}>
+                        <FileText size={12} className="mr-1" /> 编辑 settings
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {form.configDir && !configDirInfo && (
+                <div className="text-[11px] py-1" style={{ color: "var(--app-text-tertiary)" }}>
+                  目录不存在或无法读取
+                </div>
+              )}
             </div>
           )}
 

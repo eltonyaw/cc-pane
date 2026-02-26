@@ -1,17 +1,32 @@
 import { useTranslation } from "react-i18next";
-import { Search, ListFilter } from "lucide-react";
+import { Search, ListFilter, List, LayoutGrid, Sun } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import type { TodoStatus, TodoPriority, TodoScope } from "@/types";
+
+export type GroupMode = "none" | "tag" | "status" | "priority" | "scope";
 
 interface TodoFilterBarProps {
   filterStatus: TodoStatus | null;
   filterPriority: TodoPriority | null;
   filterScope: TodoScope | null;
   searchText: string;
+  groupMode: GroupMode;
+  viewMode: "all" | "my_day";
   onStatusChange: (status: TodoStatus | null) => void;
   onPriorityChange: (priority: TodoPriority | null) => void;
   onScopeChange: (scope: TodoScope | null) => void;
   onSearchChange: (text: string) => void;
+  onGroupModeChange: (mode: GroupMode) => void;
+  onViewModeChange: (mode: "all" | "my_day") => void;
+  /** 当有上下文锁定时，隐藏 Scope 筛选行 */
+  contextLocked?: boolean;
 }
 
 function SegmentedControl<T>({
@@ -51,10 +66,15 @@ export default function TodoFilterBar({
   filterPriority,
   filterScope,
   searchText,
+  groupMode,
+  viewMode,
   onStatusChange,
   onPriorityChange,
   onScopeChange,
   onSearchChange,
+  onGroupModeChange,
+  onViewModeChange,
+  contextLocked = false,
 }: TodoFilterBarProps) {
   const { t } = useTranslation("dialogs");
 
@@ -81,20 +101,74 @@ export default function TodoFilterBar({
     { value: "temp_script", label: t("todoScopeScript") },
   ];
 
+  const GROUP_MODE_OPTIONS: { value: GroupMode; label: string }[] = [
+    { value: "none", label: t("todoGroupNone") },
+    { value: "tag", label: t("todoGroupByTag") },
+    { value: "status", label: t("todoGroupByStatus") },
+    { value: "priority", label: t("todoGroupByPriority") },
+    { value: "scope", label: t("todoGroupByScope") },
+  ];
+
   return (
     <div className="px-3 py-2.5 border-b border-border/50 space-y-2.5">
-      {/* 搜索框 */}
-      <div className="relative group">
-        <Search
-          size={14}
-          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors"
-        />
-        <Input
-          value={searchText}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder={t("todoSearchPlaceholder")}
-          className="h-8 text-sm pl-8 bg-muted/30 border-transparent focus:bg-background focus:border-primary/50 transition-all"
-        />
+      {/* 视图切换：全部 / 我的一天 */}
+      <div className="flex items-center gap-1">
+        <Button
+          size="sm"
+          variant={viewMode === "all" ? "secondary" : "ghost"}
+          className="h-7 text-xs px-2.5"
+          onClick={() => onViewModeChange("all")}
+        >
+          {t("todoAllTasks")}
+        </Button>
+        <Button
+          size="sm"
+          variant={viewMode === "my_day" ? "secondary" : "ghost"}
+          className="h-7 text-xs px-2.5 gap-1"
+          onClick={() => onViewModeChange("my_day")}
+        >
+          <Sun size={12} />
+          {t("todoMyDay")}
+        </Button>
+      </div>
+
+      {/* 搜索框 + 分组切换 */}
+      <div className="flex items-center gap-1.5">
+        <div className="relative group flex-1">
+          <Search
+            size={14}
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors"
+          />
+          <Input
+            value={searchText}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder={t("todoSearchPlaceholder")}
+            className="h-8 text-sm pl-8 bg-muted/30 border-transparent focus:bg-background focus:border-primary/50 transition-all"
+          />
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="icon"
+              variant={groupMode !== "none" ? "secondary" : "ghost"}
+              className="h-8 w-8 shrink-0"
+              title={t("todoGroupMode")}
+            >
+              {groupMode !== "none" ? <LayoutGrid size={14} /> : <List size={14} />}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" sideOffset={4}>
+            {GROUP_MODE_OPTIONS.map((opt) => (
+              <DropdownMenuItem
+                key={opt.value}
+                onClick={() => onGroupModeChange(opt.value)}
+                className={groupMode === opt.value ? "bg-accent" : ""}
+              >
+                {opt.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* 筛选器 - 紧凑横向布局 */}
@@ -116,14 +190,16 @@ export default function TodoFilterBar({
         />
       </div>
 
-      {/* 作用域单独一行（选项较多） */}
-      <div className="flex items-center gap-2 overflow-x-auto">
-        <SegmentedControl
-          options={SCOPE_OPTIONS}
-          value={filterScope}
-          onChange={onScopeChange}
-        />
-      </div>
+      {/* 作用域单独一行（选项较多）— 有上下文锁定时隐藏 */}
+      {!contextLocked && (
+        <div className="flex items-center gap-2 overflow-x-auto">
+          <SegmentedControl
+            options={SCOPE_OPTIONS}
+            value={filterScope}
+            onChange={onScopeChange}
+          />
+        </div>
+      )}
     </div>
   );
 }

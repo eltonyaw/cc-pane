@@ -11,14 +11,34 @@ impl LaunchHistoryService {
         Self { repo }
     }
 
-    /// 添加启动记录
-    pub fn add(&self, project_id: &str, project_name: &str, project_path: &str) -> Result<(), String> {
-        self.repo.add(project_id, project_name, project_path)
+    /// 添加启动记录，返回记录 ID
+    pub fn add(&self, project_id: &str, project_name: &str, project_path: &str, workspace_name: Option<&str>, workspace_path: Option<&str>, launch_cwd: Option<&str>) -> Result<i64, String> {
+        self.repo.add(project_id, project_name, project_path, workspace_name, workspace_path, launch_cwd)
     }
 
     /// 获取最近的启动记录
     pub fn list(&self, limit: usize) -> Result<Vec<LaunchRecord>, String> {
         self.repo.list(limit)
+    }
+
+    /// 更新 Claude Session ID
+    pub fn update_session_id(&self, id: i64, claude_session_id: &str) -> Result<(), String> {
+        self.repo.update_session_id(id, claude_session_id)
+    }
+
+    /// 更新最后 Prompt
+    pub fn update_last_prompt(&self, id: i64, last_prompt: &str) -> Result<(), String> {
+        self.repo.update_last_prompt(id, last_prompt)
+    }
+
+    /// 更新已有会话记录的时间戳，返回记录 ID（不存在则返回 None）
+    pub fn touch_by_session_id(&self, claude_session_id: &str) -> Result<Option<i64>, String> {
+        self.repo.touch_by_session_id(claude_session_id)
+    }
+
+    /// 删除单条启动记录
+    pub fn delete(&self, id: i64) -> Result<(), String> {
+        self.repo.delete_by_id(id)
     }
 
     /// 清空启动记录

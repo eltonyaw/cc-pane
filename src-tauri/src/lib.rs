@@ -6,12 +6,15 @@ pub mod services;
 pub mod utils;
 
 use commands::{
-    add_launch_history, add_project, clear_launch_history, create_terminal_session,
+    add_launch_history, add_project, clear_launch_history, delete_launch_history,
+    read_session_state, update_launch_session_id, update_launch_last_prompt, touch_launch_by_session,
+    detect_claude_session, debug_encode_path,
+    create_terminal_session,
     enter_fullscreen, exit_fullscreen, get_all_terminal_status, get_available_shells, get_windows_build_number,
     get_git_branch, get_git_status, get_project,
     git_clone, git_fetch, git_pull, git_push, git_stash, git_stash_pop, is_fullscreen, kill_terminal,
     list_all_claude_sessions, list_claude_sessions, scan_broken_sessions,
-    clean_session_file, clean_all_broken_sessions,
+    clean_session_file, clean_all_broken_sessions, extract_last_prompt,
     list_launch_history, list_projects,
     remove_project, resize_terminal, set_decorations, toggle_always_on_top, enter_mini_mode, exit_mini_mode,
     close_window, minimize_window, maximize_window,
@@ -33,6 +36,7 @@ use commands::{
     list_worktree_recent_changes,
     // Hooks 命令
     is_hooks_enabled, enable_hooks, disable_hooks,
+    get_hooks_status, enable_hook, disable_hook, enable_all_hooks,
     get_workflow, save_workflow, init_ccpanes,
     // Journal 命令
     add_journal_session, get_journal_index, get_recent_journal,
@@ -49,18 +53,22 @@ use commands::{
     // Provider 命令
     list_providers, get_provider, get_default_provider,
     add_provider, update_provider, remove_provider, set_default_provider,
+    read_config_dir_info, open_path_in_explorer,
     // Todo 命令
     create_todo, get_todo, update_todo, delete_todo, query_todos,
     reorder_todos, batch_update_todo_status, get_todo_stats,
+    toggle_todo_my_day, check_todo_reminders,
     add_todo_subtask, update_todo_subtask, delete_todo_subtask,
     toggle_todo_subtask, reorder_todo_subtasks,
     // MCP 配置命令
     list_mcp_servers, get_mcp_server, upsert_mcp_server, remove_mcp_server,
     // Skill 命令
     list_skills, get_skill, save_skill, delete_skill, copy_skill,
+    // Plan 命令
+    list_plans, get_plan_content, delete_plan,
 };
 use repository::{Database, ProjectRepository, HistoryRepository, TodoRepository};
-use services::{ProjectService, TerminalService, HistoryService, HooksService, JournalService, WorktreeService, WorkspaceService, SettingsService, ProviderService, NotificationService, LaunchHistoryService, TodoService, McpConfigService, SkillService};
+use services::{ProjectService, TerminalService, HistoryService, HooksService, JournalService, WorktreeService, WorkspaceService, SettingsService, ProviderService, NotificationService, LaunchHistoryService, TodoService, McpConfigService, SkillService, PlanService};
 use utils::AppPaths;
 use std::sync::Arc;
 
@@ -106,6 +114,7 @@ pub fn run() {
     let notification_service = Arc::new(NotificationService::new());
     let mcp_config_service = Arc::new(McpConfigService::new());
     let skill_service = Arc::new(SkillService::new());
+    let plan_service = Arc::new(PlanService::new());
     let terminal_service = Arc::new(TerminalService::new(
         settings_service.clone(),
         provider_service.clone(),
@@ -136,6 +145,7 @@ pub fn run() {
         .manage(todo_service)
         .manage(mcp_config_service)
         .manage(skill_service)
+        .manage(plan_service)
         .setup(|app| {
             // ---- 系统托盘 ----
             let show = MenuItem::with_id(app, "show", "Show Window", true, None::<&str>)?;
@@ -232,10 +242,18 @@ pub fn run() {
             scan_broken_sessions,
             clean_session_file,
             clean_all_broken_sessions,
+            extract_last_prompt,
             // 历史命令
             add_launch_history,
             list_launch_history,
             clear_launch_history,
+            delete_launch_history,
+            read_session_state,
+            update_launch_session_id,
+            update_launch_last_prompt,
+            touch_launch_by_session,
+            detect_claude_session,
+            debug_encode_path,
             // Local History 命令
             init_project_history,
             list_file_versions,
@@ -269,6 +287,10 @@ pub fn run() {
             is_hooks_enabled,
             enable_hooks,
             disable_hooks,
+            get_hooks_status,
+            enable_hook,
+            disable_hook,
+            enable_all_hooks,
             get_workflow,
             save_workflow,
             init_ccpanes,
@@ -308,6 +330,8 @@ pub fn run() {
             update_provider,
             remove_provider,
             set_default_provider,
+            read_config_dir_info,
+            open_path_in_explorer,
             // Todo 命令
             create_todo,
             get_todo,
@@ -317,6 +341,8 @@ pub fn run() {
             reorder_todos,
             batch_update_todo_status,
             get_todo_stats,
+            toggle_todo_my_day,
+            check_todo_reminders,
             add_todo_subtask,
             update_todo_subtask,
             delete_todo_subtask,
@@ -332,7 +358,11 @@ pub fn run() {
             get_skill,
             save_skill,
             delete_skill,
-            copy_skill
+            copy_skill,
+            // Plan 命令
+            list_plans,
+            get_plan_content,
+            delete_plan
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

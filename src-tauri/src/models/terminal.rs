@@ -12,6 +12,7 @@ pub struct CreateSessionRequest {
     pub workspace_path: Option<String>,
     #[serde(default)]
     pub launch_claude: bool,
+    pub resume_id: Option<String>,
 }
 
 /// 调整终端大小请求

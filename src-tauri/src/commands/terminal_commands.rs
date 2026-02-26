@@ -26,6 +26,7 @@ pub fn create_terminal_session(
         request.provider_id.as_deref(),
         request.workspace_path.as_deref(),
         request.launch_claude,
+        request.resume_id.as_deref(),
     )?)
 }
 

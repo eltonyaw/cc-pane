@@ -1,5 +1,12 @@
 import { create } from "zustand";
 
+interface PendingLaunch {
+  path: string;
+  workspaceName?: string;
+  providerId: string;
+  workspacePath?: string;
+}
+
 interface DialogState {
   // Settings
   settingsOpen: boolean;
@@ -31,6 +38,17 @@ interface DialogState {
   todoScopeRef: string;
   openTodo: (scope: string, scopeRef: string) => void;
   closeTodo: () => void;
+
+  // Plans
+  plansOpen: boolean;
+  plansProjectPath: string;
+  openPlans: (projectPath: string) => void;
+  closePlans: () => void;
+
+  // Pending Launch（Settings → App 跨组件启动传递）
+  pendingLaunch: PendingLaunch | null;
+  setPendingLaunch: (launch: PendingLaunch) => void;
+  clearPendingLaunch: () => void;
 }
 
 export const useDialogStore = create<DialogState>((set) => ({
@@ -65,4 +83,15 @@ export const useDialogStore = create<DialogState>((set) => ({
   todoScopeRef: "",
   openTodo: (scope, scopeRef) => set({ todoOpen: true, todoScope: scope, todoScopeRef: scopeRef }),
   closeTodo: () => set({ todoOpen: false }),
+
+  // Plans
+  plansOpen: false,
+  plansProjectPath: "",
+  openPlans: (projectPath) => set({ plansOpen: true, plansProjectPath: projectPath }),
+  closePlans: () => set({ plansOpen: false }),
+
+  // Pending Launch
+  pendingLaunch: null,
+  setPendingLaunch: (launch) => set({ pendingLaunch: launch }),
+  clearPendingLaunch: () => set({ pendingLaunch: null }),
 }));

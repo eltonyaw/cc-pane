@@ -1,16 +1,27 @@
+use serde::Deserialize;
 use std::fs;
+use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use chrono::Local;
 
+/// Hook input from Claude Code (stdin JSON).
+#[derive(Debug, Deserialize)]
+struct HookInput {
+    session_id: Option<String>,
+}
+
 /// SessionStart hook entry point.
-/// Reads environment variables and outputs structured context to stdout.
+/// Reads hook JSON from stdin and outputs structured context to stdout.
 pub fn run() {
     // Skip injection in non-interactive mode
     if std::env::var("CLAUDE_NON_INTERACTIVE").unwrap_or_default() == "1" {
         return;
     }
+
+    // Read stdin early (can only be read once)
+    let session_id = read_session_id_from_stdin();
 
     let project_dir = std::env::var("CLAUDE_PROJECT_DIR")
         .map(PathBuf::from)
@@ -27,6 +38,27 @@ pub fn run() {
     }
 
     let ccpanes_dir = project_dir.join(".ccpanes");
+
+    // Write session-state.json with session_id from stdin
+    match session_id {
+        Some(ref id) => {
+            eprintln!("[ccpanes-hook] session_id (stdin) = {}", id);
+            let state = serde_json::json!({
+                "claudeSessionId": id,
+                "startedAt": Local::now().to_rfc3339(),
+                "status": "active"
+            });
+            let state_path = ccpanes_dir.join("session-state.json");
+            let _ = fs::create_dir_all(&ccpanes_dir);
+            match fs::write(&state_path, state.to_string()) {
+                Ok(_) => eprintln!("[ccpanes-hook] wrote session-state.json → {}", state_path.display()),
+                Err(e) => eprintln!("[ccpanes-hook] FAILED to write session-state.json: {}", e),
+            }
+        }
+        None => {
+            eprintln!("[ccpanes-hook] WARNING: session_id not found in stdin JSON");
+        }
+    }
 
     // 1. Session context header
     println!(
@@ -240,4 +272,12 @@ fn which_in_path(bin_name: &str) -> Option<String> {
         }
     }
     None
+}
+
+/// Read session_id from stdin JSON (Claude Code hook input).
+fn read_session_id_from_stdin() -> Option<String> {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok()?;
+    let hook: HookInput = serde_json::from_str(&input).ok()?;
+    hook.session_id.filter(|s| !s.is_empty())
 }

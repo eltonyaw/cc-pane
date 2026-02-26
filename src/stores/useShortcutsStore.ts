@@ -1,6 +1,26 @@
 import { create } from "zustand";
 import { useSettingsStore } from "./useSettingsStore";
 
+/**
+ * 终端聚焦时放行的快捷键 action ID 集合
+ *
+ * 这些快捷键与 Claude Code TUI / 终端 readline 功能冲突：
+ * - toggle-sidebar (Ctrl+B) → Claude Code: task:background
+ * - new-tab        (Ctrl+T) → Claude Code: app:toggleTodos
+ * - close-tab      (Ctrl+W) → readline: delete-word
+ * - toggle-mini-mode (Ctrl+M) → terminal: Enter (0x0D)
+ * - split-right    (Ctrl+\) → terminal: SIGQUIT
+ * - split-down     (Ctrl+-) → 部分 TUI 应用使用
+ */
+const TERMINAL_PASSTHROUGH_ACTIONS = new Set([
+  "toggle-sidebar",
+  "new-tab",
+  "close-tab",
+  "toggle-mini-mode",
+  "split-right",
+  "split-down",
+]);
+
 export interface ShortcutAction {
   id: string;
   label: string;
@@ -118,12 +138,16 @@ export function handleKeydown(e: KeyboardEvent) {
   if (!settings) return;
 
   const bindings = settings.shortcuts.bindings;
-  const actions = useShortcutsStore.getState().actions;
+  const { actions, terminalFocused } = useShortcutsStore.getState();
 
   for (const [actionId, keyCombo] of Object.entries(bindings)) {
     if (keyCombo === combo) {
       const action = actions.get(actionId);
       if (action) {
+        // 终端聚焦时，冲突快捷键放行给终端
+        if (terminalFocused && TERMINAL_PASSTHROUGH_ACTIONS.has(actionId)) {
+          return;
+        }
         e.preventDefault();
         e.stopPropagation();
         action.handler();
@@ -144,10 +168,14 @@ export function shouldTerminalHandleKey(e: KeyboardEvent): boolean {
   if (!settings) return true;
 
   const bindings = settings.shortcuts.bindings;
-  const actions = useShortcutsStore.getState().actions;
+  const { actions, terminalFocused } = useShortcutsStore.getState();
 
   for (const [actionId, keyCombo] of Object.entries(bindings)) {
     if (keyCombo === combo && actions.has(actionId) && hasModifier(combo)) {
+      // 终端聚焦时，冲突快捷键放行给终端处理
+      if (terminalFocused && TERMINAL_PASSTHROUGH_ACTIONS.has(actionId)) {
+        return true;
+      }
       return false;
     }
   }

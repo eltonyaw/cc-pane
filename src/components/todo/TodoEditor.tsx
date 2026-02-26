@@ -20,6 +20,8 @@ export interface TodoEditForm {
   scopeRef: string;
   tags: string;
   dueDate: string;
+  reminderAt: string;
+  recurrence: string;
 }
 
 interface TodoEditorProps {
@@ -211,6 +213,45 @@ export default function TodoEditor({
                 }
                 className="h-8 text-xs bg-muted/30 border-border/50 focus:bg-background"
               />
+            </div>
+          </div>
+
+          {/* 提醒 + 重复 */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                {t("todoReminderAt")}
+              </label>
+              <Input
+                type="datetime-local"
+                value={form.reminderAt ? form.reminderAt.slice(0, 16) : ""}
+                onChange={(e) =>
+                  onChange({
+                    ...form,
+                    reminderAt: e.target.value
+                      ? new Date(e.target.value).toISOString()
+                      : "",
+                  })
+                }
+                className="h-8 text-xs bg-muted/30 border-border/50 focus:bg-background"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                {t("todoRecurrence")}
+              </label>
+              <select
+                value={form.recurrence || ""}
+                onChange={(e) =>
+                  onChange({ ...form, recurrence: e.target.value })
+                }
+                className="h-8 w-full text-xs rounded-md bg-muted/30 border border-border/50 px-2 focus:bg-background focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+              >
+                <option value="">{t("todoRecurrenceNone")}</option>
+                <option value="daily">{t("todoRecurrenceDaily")}</option>
+                <option value="weekly">{t("todoRecurrenceWeekly")}</option>
+                <option value="monthly">{t("todoRecurrenceMonthly")}</option>
+              </select>
             </div>
           </div>
 

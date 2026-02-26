@@ -3,7 +3,7 @@ import { Terminal, type IDisposable } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { terminalService } from "@/services";
 import { ensureListeners } from "@/services/terminalService";
-import { shouldTerminalHandleKey } from "@/stores";
+import { shouldTerminalHandleKey, useShortcutsStore } from "@/stores";
 import { isDragging } from "@/stores/splitDragState";
 import "@xterm/xterm/css/xterm.css";
 
@@ -32,6 +32,7 @@ interface TerminalViewProps {
   providerId?: string;
   workspacePath?: string;
   launchClaude?: boolean;
+  resumeId?: string;
   onSessionCreated: (sessionId: string) => void;
   onSessionExited?: (exitCode: number) => void;
 }
@@ -158,8 +159,32 @@ const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
 
         term.open(terminalRef.current);
 
+        // 同步终端聚焦状态，用于控制冲突快捷键的放行
+        const textarea = term.textarea;
+        if (textarea) {
+          const setFocused = useShortcutsStore.getState().setTerminalFocused;
+          textarea.addEventListener('focus', () => setFocused(true));
+          textarea.addEventListener('blur', () => setFocused(false));
+        }
+
         // 拦截已注册的应用快捷键（Ctrl+T/Ctrl+W 等），防止终端吞掉
         term.attachCustomKeyEventHandler((e: KeyboardEvent) => {
+          // Ctrl+V / Ctrl+Shift+V: 显式处理粘贴
+          // 防止 xterm.js 在 TUI 模式下将 Ctrl+V 作为 ^V (0x16) 发送到 PTY
+          if (
+            e.type === 'keydown' &&
+            (e.ctrlKey || e.metaKey) &&
+            !e.altKey &&
+            (e.key === 'v' || e.key === 'V')
+          ) {
+            navigator.clipboard
+              .readText()
+              .then((text) => {
+                if (text) term.paste(text);
+              })
+              .catch(() => {});
+            return false;
+          }
           return shouldTerminalHandleKey(e);
         });
 
@@ -239,6 +264,7 @@ const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
                 providerId: props.providerId,
                 workspacePath: props.workspacePath,
                 launchClaude: props.launchClaude,
+                resumeId: props.resumeId,
               });
             }
 

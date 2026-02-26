@@ -1,7 +1,7 @@
 import {
   Command, Minus, Square, Copy, X, Sun, Moon,
   PanelLeft, PanelLeftClose, UploadCloud, FolderPlus,
-  PanelRight, PanelBottom, Globe, Maximize2,
+  PanelRight, PanelBottom, Globe, Maximize2, ListTodo,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
@@ -9,7 +9,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useThemeStore, usePanesStore, useBorderlessStore, useSettingsStore, formatKeyCombo } from "@/stores";
+import { useThemeStore, usePanesStore, useBorderlessStore, useSettingsStore, useDialogStore, formatKeyCombo } from "@/stores";
 import { useWindowControl } from "@/hooks/useWindowControl";
 import WorkspaceSwitcher from "@/components/WorkspaceSwitcher";
 
@@ -32,6 +32,8 @@ export default function GlobalTopBar({ sidebarCollapsed, onToggleSidebar, onImpo
 
   const isBorderless = useBorderlessStore((s) => s.isBorderless);
   const exitBorderless = useBorderlessStore((s) => s.exitBorderless);
+
+  const openTodo = useDialogStore((s) => s.openTodo);
 
   const settings = useSettingsStore((s) => s.settings);
 
@@ -231,6 +233,21 @@ export default function GlobalTopBar({ sidebarCollapsed, onToggleSidebar, onImpo
             </TooltipContent>
           </Tooltip>
         )}
+
+        {/* TodoList */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => openTodo("global", "")}
+              className="p-1.5 rounded-md transition-colors duration-200 text-[var(--app-text-secondary)] hover:bg-[var(--app-hover)]"
+            >
+              <ListTodo className="w-[14px] h-[14px]" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>{t("todoList", { ns: "sidebar" })}</p>
+          </TooltipContent>
+        </Tooltip>
 
         {/* 分隔线 */}
         <div

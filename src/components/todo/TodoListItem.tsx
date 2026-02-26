@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Circle,
   CheckCircle2,
@@ -7,7 +8,12 @@ import {
   Flag,
   Calendar,
   CheckSquare,
+  GripVertical,
+  Trash2,
+  Sun,
 } from "lucide-react";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import type { TodoItem } from "@/types";
 
 interface TodoListItemProps {
@@ -15,6 +21,7 @@ interface TodoListItemProps {
   isSelected: boolean;
   onSelect: () => void;
   onToggleStatus: () => void;
+  onToggleMyDay?: () => void;
 }
 
 const PRIORITY_FLAG_STYLE = {
@@ -28,6 +35,7 @@ export default function TodoListItem({
   isSelected,
   onSelect,
   onToggleStatus,
+  onToggleMyDay,
 }: TodoListItemProps) {
   const { t } = useTranslation("dialogs");
   const completedSubtasks = todo.subtasks.filter((s) => s.completed).length;
@@ -86,11 +94,34 @@ export default function TodoListItem({
           >
             {todo.title}
           </span>
-          {/* 优先级旗标 */}
-          <div className="shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
-            <Flag
-              className={`w-3.5 h-3.5 ${PRIORITY_FLAG_STYLE[todo.priority]}`}
-            />
+          <div className="flex items-center gap-1 shrink-0">
+            {/* "我的一天"太阳图标 */}
+            {onToggleMyDay && (
+              <button
+                className={`opacity-0 group-hover:opacity-100 transition-opacity ${
+                  todo.myDay ? "!opacity-100" : ""
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleMyDay();
+                }}
+                title={todo.myDay ? t("todoRemoveFromMyDay") : t("todoAddToMyDay")}
+              >
+                <Sun
+                  className={`w-3.5 h-3.5 transition-colors ${
+                    todo.myDay
+                      ? "text-amber-500 fill-amber-500/30"
+                      : "text-muted-foreground hover:text-amber-500"
+                  }`}
+                />
+              </button>
+            )}
+            {/* 优先级旗标 */}
+            <div className="opacity-80 group-hover:opacity-100 transition-opacity">
+              <Flag
+                className={`w-3.5 h-3.5 ${PRIORITY_FLAG_STYLE[todo.priority]}`}
+              />
+            </div>
           </div>
         </div>
 
@@ -131,6 +162,80 @@ export default function TodoListItem({
             </span>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ============ Sortable 包装器（用于拖拽排序） ============
+
+interface SortableTodoListItemProps {
+  todo: TodoItem;
+  isSelected: boolean;
+  onSelect: () => void;
+  onToggleStatus: () => void;
+  onToggleMyDay?: () => void;
+  onDelete: (id: string) => void;
+}
+
+export function SortableTodoListItem({
+  todo,
+  isSelected,
+  onSelect,
+  onToggleStatus,
+  onToggleMyDay,
+  onDelete,
+}: SortableTodoListItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: todo.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="group/sortable relative flex items-center">
+      {/* 拖拽手柄 */}
+      <button
+        className="shrink-0 w-5 flex items-center justify-center cursor-grab opacity-0 group-hover/sortable:opacity-60 transition-opacity"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="w-3 h-3 text-muted-foreground" />
+      </button>
+
+      {/* TodoListItem */}
+      <div className="flex-1 min-w-0">
+        <TodoListItem
+          todo={todo}
+          isSelected={isSelected}
+          onSelect={onSelect}
+          onToggleStatus={onToggleStatus}
+          onToggleMyDay={onToggleMyDay}
+        />
+      </div>
+
+      {/* 删除按钮 */}
+      <div className="absolute right-2 top-2 hidden group-hover/sortable:flex">
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(todo.id);
+          }}
+        >
+          <Trash2 size={12} />
+        </Button>
       </div>
     </div>
   );

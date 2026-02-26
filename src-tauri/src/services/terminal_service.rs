@@ -368,6 +368,7 @@ impl TerminalService {
         provider_id: Option<&str>,
         workspace_path: Option<&str>,
         launch_claude: bool,
+        resume_id: Option<&str>,
     ) -> Result<String> {
         let mut env_vars = self.settings_service.get_proxy_env_vars();
         let provider_vars = self.provider_service.get_env_vars(provider_id);
@@ -401,11 +402,16 @@ impl TerminalService {
         // 2. 命令：launch_claude 明确控制
         let (command, args) = if launch_claude {
             if which::which("claude").is_ok() {
-                if workspace_path.is_some() {
-                    ("claude".to_string(), vec!["--add-dir".to_string(), project_path.to_string()])
-                } else {
-                    ("claude".to_string(), vec![])
+                let mut claude_args = Vec::new();
+                if let Some(rid) = resume_id {
+                    claude_args.push("--resume".to_string());
+                    claude_args.push(rid.to_string());
                 }
+                if workspace_path.is_some() {
+                    claude_args.push("--add-dir".to_string());
+                    claude_args.push(project_path.to_string());
+                }
+                ("claude".to_string(), claude_args)
             } else {
                 return Err(anyhow!("claude CLI not found in PATH"));
             }

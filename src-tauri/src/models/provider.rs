@@ -10,6 +10,7 @@ pub enum ProviderType {
     Bedrock,
     Vertex,
     Proxy,
+    ConfigProfile,
 }
 
 /// Provider 配置
@@ -29,6 +30,8 @@ pub struct Provider {
     pub project_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub aws_profile: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub config_dir: Option<String>,
     #[serde(default)]
     pub is_default: bool,
 }
@@ -71,6 +74,11 @@ impl Provider {
                 }
                 if let Some(ref url) = self.base_url {
                     vars.insert("ANTHROPIC_BASE_URL".to_string(), url.clone());
+                }
+            }
+            ProviderType::ConfigProfile => {
+                if let Some(ref dir) = self.config_dir {
+                    vars.insert("CLAUDE_CONFIG_DIR".to_string(), dir.clone());
                 }
             }
         }

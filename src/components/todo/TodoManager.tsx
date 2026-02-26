@@ -1,13 +1,35 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Plus, ListTodo, Trash2, LayoutList, Loader2 } from "lucide-react";
+import {
+  Plus,
+  ListTodo,
+  Loader2,
+  PanelLeftClose,
+  PanelLeft,
+} from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useTodoStore } from "@/stores";
-import TodoFilterBar from "./TodoFilterBar";
-import TodoListItem from "./TodoListItem";
+import TodoFilterBar, { type GroupMode } from "./TodoFilterBar";
+import { SortableTodoListItem } from "./TodoListItem";
+import TodoTagGroup from "./TodoTagGroup";
 import TodoEditor from "./TodoEditor";
+import TodoOverview from "./TodoOverview";
 import type { TodoEditForm } from "./TodoEditor";
 import type {
   TodoItem,
@@ -54,11 +76,17 @@ export default function TodoManager({ scope, scopeRef }: TodoManagerProps) {
   const setSearchText = useTodoStore((s) => s.setSearchText);
   const setContext = useTodoStore((s) => s.setContext);
   const reset = useTodoStore((s) => s.reset);
+  const viewMode = useTodoStore((s) => s.viewMode);
+  const setViewMode = useTodoStore((s) => s.setViewMode);
+  const toggleMyDay = useTodoStore((s) => s.toggleMyDay);
+  const reorder = useTodoStore((s) => s.reorder);
   const addSubtask = useTodoStore((s) => s.addSubtask);
   const toggleSubtask = useTodoStore((s) => s.toggleSubtask);
   const deleteSubtask = useTodoStore((s) => s.deleteSubtask);
 
   const [isCreating, setIsCreating] = useState(false);
+  const [groupMode, setGroupMode] = useState<GroupMode>("none");
+  const [listCollapsed, setListCollapsed] = useState(false);
   const [editForm, setEditForm] = useState<TodoEditForm>({
     title: "",
     description: "",
@@ -68,6 +96,8 @@ export default function TodoManager({ scope, scopeRef }: TodoManagerProps) {
     scopeRef: "",
     tags: "",
     dueDate: "",
+    reminderAt: "",
+    recurrence: "",
   });
 
   // 初始化：设置上下文并加载
@@ -88,6 +118,13 @@ export default function TodoManager({ scope, scopeRef }: TodoManagerProps) {
     return () => clearTimeout(timer);
   }, [searchText, loadList]);
 
+  // 列表加载后自动选中第一条
+  useEffect(() => {
+    if (!loading && todos.length > 0 && !selectedTodo && !isCreating) {
+      select(todos[0]);
+    }
+  }, [loading, todos, selectedTodo, isCreating, select]);
+
   // 选中时填充编辑表单
   useEffect(() => {
     if (selectedTodo) {
@@ -100,10 +137,65 @@ export default function TodoManager({ scope, scopeRef }: TodoManagerProps) {
         scopeRef: selectedTodo.scopeRef ?? "",
         tags: selectedTodo.tags.join(", "),
         dueDate: selectedTodo.dueDate ?? "",
+        reminderAt: selectedTodo.reminderAt ?? "",
+        recurrence: selectedTodo.recurrence ?? "",
       });
       setIsCreating(false);
     }
   }, [selectedTodo]);
+
+  // 通用分组计算
+  const groups = useMemo(() => {
+    if (groupMode === "none") return null;
+    const result = new Map<string, TodoItem[]>();
+    for (const todo of todos) {
+      const keys =
+        groupMode === "tag"
+          ? todo.tags.length > 0
+            ? todo.tags
+            : ["__untagged__"]
+          : groupMode === "status"
+            ? [todo.status]
+            : groupMode === "priority"
+              ? [todo.priority]
+              : [todo.scope]; // scope
+      for (const key of keys) {
+        const list = result.get(key) ?? [];
+        list.push(todo);
+        result.set(key, list);
+      }
+    }
+    return result;
+  }, [todos, groupMode]);
+
+  // 分组标签翻译映射
+  const groupLabelMap = useMemo((): Record<string, string> | null => {
+    if (groupMode === "none" || groupMode === "tag") return null;
+    if (groupMode === "status") {
+      return {
+        todo: t("todoTodo"),
+        in_progress: t("todoInProgress"),
+        done: t("todoDone"),
+      };
+    }
+    if (groupMode === "priority") {
+      return {
+        high: t("todoPriorityHigh"),
+        medium: t("todoPriorityMedium"),
+        low: t("todoPriorityLow"),
+      };
+    }
+    // scope
+    return {
+      global: t("todoScopeGlobal"),
+      workspace: t("todoScopeWorkspace"),
+      project: t("todoScopeProject"),
+      external: t("todoScopeExternal"),
+      temp_script: t("todoScopeScript"),
+    };
+  }, [groupMode, t]);
+
+  const hasContext = !!(scope && scopeRef);
 
   const handleNew = useCallback(() => {
     select(null);
@@ -113,12 +205,14 @@ export default function TodoManager({ scope, scopeRef }: TodoManagerProps) {
       description: "",
       status: "todo",
       priority: "medium",
-      scope: "global",
-      scopeRef: "",
+      scope: (scope as TodoScope) || "global",
+      scopeRef: scopeRef || "",
       tags: "",
       dueDate: "",
+      reminderAt: "",
+      recurrence: "",
     });
-  }, [select]);
+  }, [select, scope, scopeRef]);
 
   const handleSave = useCallback(async () => {
     if (!editForm.title.trim()) {
@@ -142,6 +236,8 @@ export default function TodoManager({ scope, scopeRef }: TodoManagerProps) {
           scopeRef: editForm.scopeRef || undefined,
           tags: tags.length > 0 ? tags : undefined,
           dueDate: editForm.dueDate || undefined,
+          reminderAt: editForm.reminderAt || undefined,
+          recurrence: editForm.recurrence || undefined,
         };
         await create(request);
         setIsCreating(false);
@@ -156,6 +252,8 @@ export default function TodoManager({ scope, scopeRef }: TodoManagerProps) {
           scopeRef: editForm.scopeRef || undefined,
           tags,
           dueDate: editForm.dueDate || undefined,
+          reminderAt: editForm.reminderAt || undefined,
+          recurrence: editForm.recurrence || undefined,
         };
         await update(selectedTodo.id, request);
         toast.success(tNotify("todoUpdated"));
@@ -163,7 +261,7 @@ export default function TodoManager({ scope, scopeRef }: TodoManagerProps) {
     } catch (e) {
       toast.error(tNotify("operationFailed", { error: String(e) }));
     }
-  }, [editForm, isCreating, selectedTodo, create, update]);
+  }, [editForm, isCreating, selectedTodo, create, update, tNotify]);
 
   const handleDelete = useCallback(
     async (id: string) => {
@@ -174,7 +272,7 @@ export default function TodoManager({ scope, scopeRef }: TodoManagerProps) {
         toast.error(tNotify("operationFailed", { error: String(e) }));
       }
     },
-    [remove]
+    [remove, tNotify]
   );
 
   const handleCancel = useCallback(() => {
@@ -190,7 +288,7 @@ export default function TodoManager({ scope, scopeRef }: TodoManagerProps) {
         toast.error(tNotify("operationFailed", { error: String(e) }));
       }
     },
-    [update]
+    [update, tNotify]
   );
 
   const handleAddSubtask = useCallback(
@@ -202,7 +300,7 @@ export default function TodoManager({ scope, scopeRef }: TodoManagerProps) {
         toast.error(tNotify("operationFailed", { error: String(e) }));
       }
     },
-    [selectedTodo, addSubtask]
+    [selectedTodo, addSubtask, tNotify]
   );
 
   const handleToggleSubtask = useCallback(
@@ -213,7 +311,7 @@ export default function TodoManager({ scope, scopeRef }: TodoManagerProps) {
         toast.error(tNotify("operationFailed", { error: String(e) }));
       }
     },
-    [toggleSubtask]
+    [toggleSubtask, tNotify]
   );
 
   const handleDeleteSubtask = useCallback(
@@ -224,7 +322,26 @@ export default function TodoManager({ scope, scopeRef }: TodoManagerProps) {
         toast.error(tNotify("operationFailed", { error: String(e) }));
       }
     },
-    [deleteSubtask]
+    [deleteSubtask, tNotify]
+  );
+
+  // dnd-kit sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor)
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+      const oldIndex = todos.findIndex((t) => t.id === active.id);
+      const newIndex = todos.findIndex((t) => t.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return;
+      const reordered = arrayMove(todos, oldIndex, newIndex);
+      reorder(reordered.map((t) => t.id));
+    },
+    [todos, reorder]
   );
 
   const showEditor = isCreating || selectedTodo;
@@ -232,7 +349,11 @@ export default function TodoManager({ scope, scopeRef }: TodoManagerProps) {
   return (
     <div className="flex h-full">
       {/* 左侧列表面板 */}
-      <aside className="w-[340px] flex-shrink-0 border-r border-border bg-background/95 backdrop-blur shadow-[1px_0_8px_rgba(0,0,0,0.02)] flex flex-col z-10">
+      <aside
+        className={`flex-shrink-0 border-r border-border bg-background/95 backdrop-blur shadow-[1px_0_8px_rgba(0,0,0,0.02)] flex flex-col z-10 transition-all duration-300 ${
+          listCollapsed ? "w-0 overflow-hidden border-r-0" : "w-[340px]"
+        }`}
+      >
         {/* 头部 */}
         <div className="px-3 py-2.5 border-b border-border/50">
           <div className="flex items-center justify-between">
@@ -243,14 +364,25 @@ export default function TodoManager({ scope, scopeRef }: TodoManagerProps) {
                 {total}
               </Badge>
             </div>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-7 w-7 hover:bg-primary/10 hover:text-primary transition-colors"
-              onClick={handleNew}
-            >
-              <Plus size={14} />
-            </Button>
+            <div className="flex items-center gap-0.5">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 hover:bg-primary/10 hover:text-primary transition-colors"
+                onClick={handleNew}
+              >
+                <Plus size={14} />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 hover:bg-muted transition-colors"
+                onClick={() => setListCollapsed(true)}
+                title={t("todoCollapseList")}
+              >
+                <PanelLeftClose size={14} />
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -260,10 +392,15 @@ export default function TodoManager({ scope, scopeRef }: TodoManagerProps) {
           filterPriority={filterPriority}
           filterScope={filterScope}
           searchText={searchText}
+          groupMode={groupMode}
+          viewMode={viewMode}
           onStatusChange={setFilterStatus}
           onPriorityChange={setFilterPriority}
           onScopeChange={setFilterScope}
           onSearchChange={setSearchText}
+          onGroupModeChange={setGroupMode}
+          onViewModeChange={setViewMode}
+          contextLocked={hasContext}
         />
 
         {/* 列表 */}
@@ -283,34 +420,67 @@ export default function TodoManager({ scope, scopeRef }: TodoManagerProps) {
             </div>
           )}
 
-          {todos.map((todo) => (
-            <div key={todo.id} className="group relative">
-              <TodoListItem
-                todo={todo}
-                isSelected={selectedTodo?.id === todo.id}
-                onSelect={() => select(todo)}
-                onToggleStatus={() => handleToggleStatus(todo)}
-              />
-              <div className="absolute right-2 top-2 hidden group-hover:flex">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(todo.id);
-                  }}
-                >
-                  <Trash2 size={12} />
-                </Button>
-              </div>
-            </div>
-          ))}
+          {/* 分组模式 */}
+          {!loading && groups && (
+            <>
+              {[...groups.entries()].map(([key, groupTodos]) => (
+                <TodoTagGroup
+                  key={key}
+                  tag={key}
+                  label={groupLabelMap?.[key]}
+                  todos={groupTodos}
+                  selectedId={selectedTodo?.id}
+                  onSelect={select}
+                  onToggleStatus={handleToggleStatus}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </>
+          )}
+
+          {/* 平铺模式（可拖拽排序） */}
+          {!loading && !groups && (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={todos.map((t) => t.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {todos.map((todo) => (
+                  <SortableTodoListItem
+                    key={todo.id}
+                    todo={todo}
+                    isSelected={selectedTodo?.id === todo.id}
+                    onSelect={() => select(todo)}
+                    onToggleStatus={() => handleToggleStatus(todo)}
+                    onToggleMyDay={() => toggleMyDay(todo.id)}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
+          )}
         </div>
       </aside>
 
-      {/* 右侧编辑器 */}
-      <main className="flex-1 overflow-hidden bg-muted/5">
+      {/* 右侧区域 */}
+      <main className="flex-1 overflow-hidden bg-muted/5 relative">
+        {/* 列表折叠后的展开按钮 */}
+        {listCollapsed && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="absolute left-2 top-2 z-20 h-7 w-7 hover:bg-muted transition-colors"
+            onClick={() => setListCollapsed(false)}
+            title={t("todoExpandList")}
+          >
+            <PanelLeft size={14} />
+          </Button>
+        )}
+
         {showEditor ? (
           <TodoEditor
             form={editForm}
@@ -324,15 +494,11 @@ export default function TodoManager({ scope, scopeRef }: TodoManagerProps) {
             onAddSubtask={handleAddSubtask}
           />
         ) : (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            <div className="text-center">
-              <LayoutList size={32} className="mx-auto mb-3 opacity-40" />
-              <p className="text-sm">{t("selectOrCreateTask")}</p>
-              <p className="text-xs mt-1 text-muted-foreground/60">
-                {t("todoDesc")}
-              </p>
-            </div>
-          </div>
+          <TodoOverview
+            todos={todos}
+            onSelectTodo={select}
+            onCreateNew={handleNew}
+          />
         )}
       </main>
     </div>

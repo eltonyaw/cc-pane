@@ -29,3 +29,15 @@ export type {
   DataDirInfo,
   ShellInfo,
 } from "./settings";
+export type {
+  TodoStatus,
+  TodoPriority,
+  TodoScope,
+  TodoItem,
+  TodoSubtask,
+  CreateTodoRequest,
+  UpdateTodoRequest,
+  TodoQuery,
+  TodoQueryResult,
+  TodoStats,
+} from "./todo";

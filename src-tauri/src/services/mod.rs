@@ -12,11 +12,12 @@ mod launch_history_service;
 mod todo_service;
 pub mod mcp_config_service;
 pub mod skill_service;
+pub mod plan_service;
 
 pub use project_service::ProjectService;
 pub use terminal_service::{TerminalService, SessionStatusInfo, ShellInfo};
 pub use history_service::HistoryService;
-pub use hooks_service::HooksService;
+pub use hooks_service::{HooksService, HookStatus};
 pub use journal_service::{JournalService, SessionSummary, JournalIndex};
 pub use worktree_service::{WorktreeService, WorktreeInfo};
 pub use workspace_service::WorkspaceService;
@@ -27,3 +28,4 @@ pub use launch_history_service::LaunchHistoryService;
 pub use todo_service::TodoService;
 pub use mcp_config_service::McpConfigService;
 pub use skill_service::SkillService;
+pub use plan_service::PlanService;

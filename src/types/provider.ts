@@ -1,4 +1,4 @@
-export type ProviderType = "anthropic" | "bedrock" | "vertex" | "proxy";
+export type ProviderType = "anthropic" | "bedrock" | "vertex" | "proxy" | "config_profile";
 
 export interface Provider {
   id: string;
@@ -9,6 +9,7 @@ export interface Provider {
   region?: string | null;
   projectId?: string | null;
   awsProfile?: string | null;
+  configDir?: string | null;
   isDefault: boolean;
 }
 
@@ -36,4 +37,17 @@ export const PROVIDER_TYPE_META: Record<
     description: "通过第三方 API 代理",
     fields: ["apiKey", "baseUrl"],
   },
+  config_profile: {
+    label: "配置文件",
+    description: "指向 Claude Code 配置目录",
+    fields: ["configDir"],
+  },
 };
+
+export interface ConfigDirInfo {
+  path: string;
+  hasSettings: boolean;
+  hasCredentials: boolean;
+  settingsSummary: string | null;
+  files: string[];
+}

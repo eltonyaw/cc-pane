@@ -42,7 +42,7 @@ function loadSidebarWidth(): number {
 interface SidebarProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
-  onOpenTerminal: (path: string, workspaceName?: string, providerId?: string, workspacePath?: string, launchClaude?: boolean) => void;
+  onOpenTerminal: (path: string, workspaceName?: string, providerId?: string, workspacePath?: string, launchClaude?: boolean, resumeId?: string) => void;
   onSettings: () => void;
 }
 
@@ -108,7 +108,7 @@ export default function Sidebar({
 
   const fetchHistory = useCallback(async () => {
     try {
-      const list = await historyService.list(10);
+      const list = await historyService.list(30);
       setLaunchHistory(list);
     } catch (e) {
       console.error("Failed to fetch history:", e);
@@ -123,6 +123,22 @@ export default function Sidebar({
       console.error("Failed to clear history:", e);
     }
   }
+
+  async function deleteRecord(id: number) {
+    try {
+      await historyService.delete(id);
+      window.dispatchEvent(new Event('cc-panes:history-updated'));
+    } catch (e) {
+      console.error("Failed to delete record:", e);
+    }
+  }
+
+  // 监听 history-updated 事件，刷新启动历史列表
+  useEffect(() => {
+    const handler = () => { fetchHistory(); };
+    window.addEventListener('cc-panes:history-updated', handler);
+    return () => { window.removeEventListener('cc-panes:history-updated', handler); };
+  }, [fetchHistory]);
 
   useEffect(() => {
     waitForTauri().then(async (ready) => {
@@ -204,8 +220,13 @@ export default function Sidebar({
                 <div key="recent-launches" className="h-full overflow-y-auto px-3 pb-4">
                   <RecentLaunches
                     launchHistory={launchHistory}
-                    onOpenTerminal={(path: string) => onOpenTerminal(path)}
+                    onOpenTerminal={(path: string, resumeId?: string, workspacePath?: string, launchCwd?: string) => {
+                      // resume 时用 launchCwd 作为 workspace_path，确保 cwd 与原始启动目录一致
+                      const effectiveCwd = launchCwd ?? workspacePath;
+                      onOpenTerminal(path, undefined, undefined, effectiveCwd, true, resumeId);
+                    }}
                     onClearHistory={clearHistory}
+                    onDeleteRecord={deleteRecord}
                   />
                 </div>,
               ]}

@@ -54,5 +54,20 @@
   "setWorkspacePath": "设置工作空间路径",
   "clearWorkspacePath": "清除工作空间路径",
   "renameWorkspace": "重命名",
-  "selectProjectFirst": "请先选择一个项目"
+  "selectProjectFirst": "请先选择一个项目",
+  "resumeSession": "恢复会话",
+  "ungrouped": "未分组",
+  "sessionId": "Session ID",
+  "launchTime": "启动时间",
+  "lastPromptLabel": "最后提示",
+  "copySessionId": "已复制 Session ID",
+  "resumeButton": "恢复",
+  "openInFolder": "打开文件夹",
+  "noResumableSessions": "暂无可恢复的会话",
+  "planArchive": "Plan 归档",
+  "hooks": "Hooks",
+  "hookSessionInject": "上下文注入",
+  "hookPlanArchive": "Plan 归档",
+  "useWorkspaceProvider": "使用工作空间 Provider",
+  "deleteRecord": "删除"
 }

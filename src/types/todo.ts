@@ -29,6 +29,10 @@ export interface TodoItem {
   scopeRef?: string;
   tags: string[];
   dueDate?: string; // RFC3339
+  myDay: boolean;
+  myDayDate?: string; // YYYY-MM-DD
+  reminderAt?: string; // RFC3339
+  recurrence?: string; // JSON
   sortOrder: number;
   createdAt: string; // RFC3339
   updatedAt: string;
@@ -55,6 +59,8 @@ export interface CreateTodoRequest {
   scopeRef?: string;
   tags?: string[];
   dueDate?: string;
+  reminderAt?: string;
+  recurrence?: string;
 }
 
 /** 更新 Todo 请求 */
@@ -67,6 +73,10 @@ export interface UpdateTodoRequest {
   scopeRef?: string;
   tags?: string[];
   dueDate?: string;
+  myDay?: boolean;
+  myDayDate?: string;
+  reminderAt?: string;
+  recurrence?: string;
 }
 
 /** Todo 查询参数 */
@@ -80,6 +90,7 @@ export interface TodoQuery {
   sortBy?: string;
   limit?: number;
   offset?: number;
+  myDay?: boolean;
 }
 
 /** Todo 查询结果 */

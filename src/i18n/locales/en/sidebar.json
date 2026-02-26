@@ -54,5 +54,20 @@
   "setWorkspacePath": "Set Workspace Path",
   "clearWorkspacePath": "Clear Workspace Path",
   "renameWorkspace": "Rename",
-  "selectProjectFirst": "Please select a project first"
+  "selectProjectFirst": "Please select a project first",
+  "resumeSession": "Resume Session",
+  "ungrouped": "Ungrouped",
+  "sessionId": "Session ID",
+  "launchTime": "Launch Time",
+  "lastPromptLabel": "Last Prompt",
+  "copySessionId": "Session ID copied",
+  "resumeButton": "Resume",
+  "openInFolder": "Open Folder",
+  "noResumableSessions": "No resumable sessions",
+  "planArchive": "Plan Archive",
+  "hooks": "Hooks",
+  "hookSessionInject": "Context Inject",
+  "hookPlanArchive": "Plan Archive",
+  "useWorkspaceProvider": "Workspace Provider",
+  "deleteRecord": "Delete"
 }

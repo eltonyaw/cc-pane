@@ -98,6 +98,19 @@ impl NotificationService {
             .show();
     }
 
+    /// Todo 提醒通知
+    pub fn notify_todo_reminder(
+        &self,
+        app: &AppHandle,
+        todo_id: &str,
+        title: &str,
+    ) {
+        if !self.check_debounce(&format!("todo_reminder_{}", todo_id)) {
+            return;
+        }
+        self.send_notification(app, "Todo Reminder", title);
+    }
+
     /// 清理防抖记录（会话关闭时调用）
     pub fn cleanup_session(&self, session_id: &str) {
         let mut map = self.last_notified.lock().unwrap_or_else(|e| e.into_inner());

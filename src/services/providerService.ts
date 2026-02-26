@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Provider } from "@/types/provider";
+import type { Provider, ConfigDirInfo } from "@/types/provider";
 
 export const providerService = {
   async listProviders(): Promise<Provider[]> {
@@ -28,5 +28,13 @@ export const providerService = {
 
   async setDefaultProvider(id: string): Promise<void> {
     return invoke("set_default_provider", { id });
+  },
+
+  async readConfigDirInfo(path: string): Promise<ConfigDirInfo> {
+    return invoke<ConfigDirInfo>("read_config_dir_info", { path });
+  },
+
+  async openPathInExplorer(path: string): Promise<void> {
+    return invoke("open_path_in_explorer", { path });
   },
 };

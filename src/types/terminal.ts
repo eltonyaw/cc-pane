@@ -36,6 +36,7 @@ export interface CreateSessionRequest {
   providerId?: string;
   workspacePath?: string;
   launchClaude?: boolean;
+  resumeId?: string;
 }
 
 /** 终端输出事件 */

@@ -63,6 +63,16 @@ export const todoService = {
     });
   },
 
+  /** 切换"我的一天" */
+  async toggleMyDay(id: string): Promise<TodoItem> {
+    return invoke<TodoItem>("toggle_todo_my_day", { id });
+  },
+
+  /** 检查到期提醒 */
+  async checkReminders(): Promise<TodoItem[]> {
+    return invoke<TodoItem[]>("check_todo_reminders");
+  },
+
   // ============ Subtask (5 个) ============
 
   /** 添加子任务 */

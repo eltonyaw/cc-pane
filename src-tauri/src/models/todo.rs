@@ -116,6 +116,13 @@ pub struct TodoItem {
     pub tags: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub due_date: Option<String>,
+    pub my_day: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub my_day_date: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reminder_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub recurrence: Option<String>,
     pub sort_order: i32,
     pub created_at: String,
     pub updated_at: String,
@@ -153,6 +160,10 @@ pub struct CreateTodoRequest {
     pub tags: Option<Vec<String>>,
     #[serde(default)]
     pub due_date: Option<String>,
+    #[serde(default)]
+    pub reminder_at: Option<String>,
+    #[serde(default)]
+    pub recurrence: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -174,6 +185,14 @@ pub struct UpdateTodoRequest {
     pub tags: Option<Vec<String>>,
     #[serde(default)]
     pub due_date: Option<String>,
+    #[serde(default)]
+    pub my_day: Option<bool>,
+    #[serde(default)]
+    pub my_day_date: Option<String>,
+    #[serde(default)]
+    pub reminder_at: Option<String>,
+    #[serde(default)]
+    pub recurrence: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -197,6 +216,8 @@ pub struct TodoQuery {
     pub limit: Option<u32>,
     #[serde(default)]
     pub offset: Option<u32>,
+    #[serde(default)]
+    pub my_day: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -269,6 +290,10 @@ mod tests {
             scope_ref: None,
             tags: vec!["rust".to_string()],
             due_date: None,
+            my_day: false,
+            my_day_date: None,
+            reminder_at: None,
+            recurrence: None,
             sort_order: 0,
             created_at: "2025-01-01T00:00:00Z".to_string(),
             updated_at: "2025-01-01T00:00:00Z".to_string(),

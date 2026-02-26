@@ -1,4 +1,4 @@
-use crate::services::HooksService;
+use crate::services::{HooksService, HookStatus};
 use crate::utils::{AppResult, validate_path};
 use std::sync::Arc;
 use tauri::State;
@@ -30,6 +30,44 @@ pub fn disable_hooks(
 ) -> AppResult<()> {
     validate_path(&project_path)?;
     Ok(service.disable_hooks(&project_path)?)
+}
+
+#[tauri::command]
+pub fn get_hooks_status(
+    project_path: String,
+    service: State<'_, Arc<HooksService>>,
+) -> AppResult<Vec<HookStatus>> {
+    validate_path(&project_path)?;
+    Ok(service.get_hooks_status(&project_path)?)
+}
+
+#[tauri::command]
+pub fn enable_hook(
+    project_path: String,
+    hook_name: String,
+    service: State<'_, Arc<HooksService>>,
+) -> AppResult<()> {
+    validate_path(&project_path)?;
+    Ok(service.enable_hook(&project_path, &hook_name)?)
+}
+
+#[tauri::command]
+pub fn disable_hook(
+    project_path: String,
+    hook_name: String,
+    service: State<'_, Arc<HooksService>>,
+) -> AppResult<()> {
+    validate_path(&project_path)?;
+    Ok(service.disable_hook(&project_path, &hook_name)?)
+}
+
+#[tauri::command]
+pub fn enable_all_hooks(
+    project_path: String,
+    service: State<'_, Arc<HooksService>>,
+) -> AppResult<()> {
+    validate_path(&project_path)?;
+    Ok(service.enable_all_hooks(&project_path)?)
 }
 
 #[tauri::command]
