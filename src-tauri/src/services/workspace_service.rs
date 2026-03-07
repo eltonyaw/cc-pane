@@ -1,12 +1,21 @@
 use crate::models::{ScannedRepo, ScannedWorktree, Workspace, WorkspaceProject};
 use crate::utils::{output_with_timeout, GIT_LOCAL_TIMEOUT};
+use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::Mutex;
+use std::time::Instant;
+use tauri::{AppHandle, Emitter};
+
+/// Debounce 间隔（毫秒）
+const WATCHER_DEBOUNCE_MS: u64 = 500;
 
 pub struct WorkspaceService {
     base_dir: PathBuf,
+    /// 保存 watcher 引用，防止被 drop
+    _watcher: Mutex<Option<RecommendedWatcher>>,
 }
 
 impl WorkspaceService {
@@ -18,7 +27,73 @@ impl WorkspaceService {
             }
         }
 
-        Self { base_dir }
+        Self {
+            base_dir,
+            _watcher: Mutex::new(None),
+        }
+    }
+
+    /// 启动文件系统监控，检测 workspace.json 变化后通知前端刷新
+    pub fn start_watcher(&self, app_handle: AppHandle) {
+        let last_emit = std::sync::Arc::new(Mutex::new(Instant::now()));
+        let debounce_ms = WATCHER_DEBOUNCE_MS;
+
+        let app_handle_clone = app_handle.clone();
+        let last_emit_clone = last_emit.clone();
+
+        let watcher = RecommendedWatcher::new(
+            move |res: Result<notify::Event, notify::Error>| {
+                if let Ok(event) = res {
+                    // 仅关注 workspace.json 文件的变更
+                    let is_workspace_json = event
+                        .paths
+                        .iter()
+                        .any(|p| p.file_name().map_or(false, |n| n == "workspace.json"));
+                    if !is_workspace_json {
+                        return;
+                    }
+
+                    // Trailing edge debounce: 只在间隔超过阈值时发送事件
+                    let mut last = last_emit_clone.lock().unwrap_or_else(|e| e.into_inner());
+                    let now = Instant::now();
+                    if now.duration_since(*last).as_millis() >= debounce_ms as u128 {
+                        *last = now;
+                        let _ = app_handle_clone.emit("workspaces-changed", ());
+                    }
+                }
+            },
+            Config::default(),
+        );
+
+        match watcher {
+            Ok(mut w) => {
+                if let Err(e) = w.watch(&self.base_dir, RecursiveMode::Recursive) {
+                    eprintln!(
+                        "[workspace-watcher] Failed to watch {}: {}",
+                        self.base_dir.display(),
+                        e
+                    );
+                    return;
+                }
+                eprintln!(
+                    "[workspace-watcher] Watching {}",
+                    self.base_dir.display()
+                );
+                let mut guard = self._watcher.lock().unwrap_or_else(|e| e.into_inner());
+                *guard = Some(w);
+            }
+            Err(e) => {
+                eprintln!("[workspace-watcher] Failed to create watcher: {}", e);
+            }
+        }
+    }
+
+    /// 停止文件系统监控
+    pub fn stop_watcher(&self) {
+        let mut guard = self._watcher.lock().unwrap_or_else(|e| e.into_inner());
+        if guard.take().is_some() {
+            eprintln!("[workspace-watcher] Stopped");
+        }
     }
 
     /// 获取 workspace 目录路径

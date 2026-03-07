@@ -32,8 +32,8 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-background/60 p-3">
-      <div className={`shrink-0 ${color}`}>{icon}</div>
+    <div className="flex items-center gap-3 rounded-2xl border border-border/30 bg-card shadow-sm p-4 hover:shadow-md hover:-translate-y-[1px] transition-all">
+      <div className={`shrink-0 w-9 h-9 rounded-full bg-muted/50 border border-border/30 flex items-center justify-center ${color}`}>{icon}</div>
       <div className="min-w-0">
         <p className="text-lg font-semibold leading-none">{count}</p>
         <p className="text-[11px] text-muted-foreground mt-0.5">{label}</p>
@@ -103,7 +103,7 @@ export default function TodoOverview({
     .slice(0, 5);
 
   return (
-    <div className="flex flex-col items-center justify-center h-full px-8 py-6 max-w-lg mx-auto">
+    <div className="flex flex-col items-center justify-center h-full px-8 py-6 max-w-xl mx-auto">
       <h3 className="text-sm font-semibold mb-4">{t("todoOverviewTitle")}</h3>
 
       {/* 数字卡片 */}
@@ -181,7 +181,7 @@ export default function TodoOverview({
               <button
                 key={todo.id}
                 onClick={() => onSelectTodo(todo)}
-                className="w-full text-left px-2.5 py-1.5 text-xs rounded-md hover:bg-accent/40 transition-colors truncate text-foreground/80"
+                className="w-full text-left px-2.5 py-1.5 text-xs rounded-xl border border-transparent hover:bg-accent/50 hover:shadow-sm transition-all truncate text-foreground/80"
               >
                 {todo.title}
               </button>
@@ -194,7 +194,7 @@ export default function TodoOverview({
       <Button
         variant="outline"
         size="sm"
-        className="gap-1.5"
+        className="gap-1.5 w-full"
         onClick={onCreateNew}
       >
         <Plus size={14} />

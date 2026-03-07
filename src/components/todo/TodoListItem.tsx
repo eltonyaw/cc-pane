@@ -47,29 +47,24 @@ export default function TodoListItem({
 
   const statusIcon =
     todo.status === "done" ? (
-      <CheckCircle2 className="w-[18px] h-[18px] text-emerald-500" />
+      <CheckCircle2 className="w-5 h-5 text-emerald-500" />
     ) : todo.status === "in_progress" ? (
-      <CircleDashed className="w-[18px] h-[18px] text-blue-500 animate-[spin_4s_linear_infinite]" />
+      <CircleDashed className="w-5 h-5 text-blue-500 animate-[spin_4s_linear_infinite]" />
     ) : (
-      <Circle className="w-[18px] h-[18px] text-muted-foreground hover:text-primary transition-colors" />
+      <Circle className="w-5 h-5 text-muted-foreground hover:text-primary transition-colors" />
     );
 
   return (
     <div
-      className={`group relative flex items-start gap-2.5 px-3 py-2.5 cursor-pointer rounded-lg mx-1 my-0.5
+      className={`group relative flex items-start gap-2.5 p-4 cursor-pointer rounded-2xl mx-2 my-1
         transition-all duration-200 ease-out border
         ${
           isSelected
-            ? "bg-accent/50 border-primary/20 shadow-sm"
-            : "bg-transparent border-transparent hover:bg-accent/30 hover:border-border/50"
+            ? "bg-primary/5 border-primary/60 shadow-sm ring-2 ring-primary/10"
+            : "bg-card border-border/50 hover:border-primary/30 hover:shadow-md hover:-translate-y-[1px]"
         }`}
       onClick={onSelect}
     >
-      {/* 选中时左侧强调线 */}
-      {isSelected && (
-        <div className="absolute left-0 top-2.5 bottom-2.5 w-[3px] bg-primary rounded-r-full" />
-      )}
-
       {/* 状态切换 */}
       <button
         className="mt-0.5 shrink-0 transition-transform active:scale-90"
@@ -125,26 +120,35 @@ export default function TodoListItem({
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+          {/* 类型 badge */}
+          {todo.todoType && (
+            <Badge
+              variant="outline"
+              className="text-xs px-1.5 py-0 h-4 font-medium border-primary/30 text-primary"
+            >
+              {todo.todoType}
+            </Badge>
+          )}
           {/* Tags */}
           {todo.tags.slice(0, 3).map((tag) => (
             <Badge
               key={tag}
               variant="secondary"
-              className="text-[10px] px-1.5 py-0 h-4 font-medium"
+              className="text-xs px-1.5 py-0 h-4 font-medium"
             >
               {tag}
             </Badge>
           ))}
           {todo.tags.length > 3 && (
-            <span className="text-[10px] text-muted-foreground bg-secondary/50 px-1 rounded">
+            <span className="text-xs text-muted-foreground bg-secondary/50 px-1 rounded">
               +{todo.tags.length - 3}
             </span>
           )}
 
           {/* 子任务进度 */}
           {totalSubtasks > 0 && (
-            <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
               <CheckSquare size={9} />
               {completedSubtasks}/{totalSubtasks}
             </span>
@@ -153,7 +157,7 @@ export default function TodoListItem({
           {/* 到期日 */}
           {todo.dueDate && (
             <span
-              className={`flex items-center gap-0.5 text-[10px] ${
+              className={`flex items-center gap-0.5 text-xs ${
                 isOverdue ? "text-red-500 font-medium" : "text-muted-foreground"
               }`}
             >
@@ -224,7 +228,7 @@ export function SortableTodoListItem({
       </div>
 
       {/* 删除按钮 */}
-      <div className="absolute right-2 top-2 hidden group-hover/sortable:flex">
+      <div className="absolute right-3 top-3 hidden group-hover/sortable:flex">
         <Button
           size="icon"
           variant="ghost"

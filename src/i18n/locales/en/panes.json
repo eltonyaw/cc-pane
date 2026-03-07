@@ -23,5 +23,10 @@
   "splitAndMoveDown": "Split & Move Down",
   "closeTabsToLeft": "Close Tabs to the Left",
   "closeTabsToRight": "Close Tabs to the Right",
-  "closeOtherTabs": "Close Other Tabs"
+  "closeOtherTabs": "Close Other Tabs",
+  "unsavedChanges": "Unsaved Changes",
+  "unsavedChangesDesc": "This file has unsaved changes. Discard and close?",
+  "discardAndClose": "Discard & Close",
+  "unsavedTabsCount": "{{count}} tab(s) have unsaved changes. Discard all and close?",
+  "revealInExplorer": "Reveal in File Tree"
 }

@@ -45,6 +45,11 @@ interface DialogState {
   openPlans: (projectPath: string) => void;
   closePlans: () => void;
 
+  // Self Chat
+  selfChatOpen: boolean;
+  openSelfChat: () => void;
+  closeSelfChat: () => void;
+
   // Pending Launch（Settings → App 跨组件启动传递）
   pendingLaunch: PendingLaunch | null;
   setPendingLaunch: (launch: PendingLaunch) => void;
@@ -89,6 +94,11 @@ export const useDialogStore = create<DialogState>((set) => ({
   plansProjectPath: "",
   openPlans: (projectPath) => set({ plansOpen: true, plansProjectPath: projectPath }),
   closePlans: () => set({ plansOpen: false }),
+
+  // Self Chat
+  selfChatOpen: false,
+  openSelfChat: () => set({ selfChatOpen: true }),
+  closeSelfChat: () => set({ selfChatOpen: false }),
 
   // Pending Launch
   pendingLaunch: null,

@@ -11,13 +11,13 @@ use commands::{
     detect_claude_session, debug_encode_path,
     create_terminal_session,
     enter_fullscreen, exit_fullscreen, get_all_terminal_status, get_available_shells, get_windows_build_number,
-    get_git_branch, get_git_status, get_project,
+    get_git_branch, get_git_status, get_git_file_statuses, get_project,
     git_clone, git_fetch, git_pull, git_push, git_stash, git_stash_pop, is_fullscreen, kill_terminal,
     list_all_claude_sessions, list_claude_sessions, scan_broken_sessions,
     clean_session_file, clean_all_broken_sessions, extract_last_prompt,
     list_launch_history, list_projects,
     remove_project, resize_terminal, set_decorations, toggle_always_on_top, enter_mini_mode, exit_mini_mode,
-    close_window, minimize_window, maximize_window,
+    close_window, minimize_window, maximize_window, get_app_cwd,
     update_project_alias, update_project_name, write_terminal,
     // Local History 命令
     init_project_history, list_file_versions, get_version_content,
@@ -67,9 +67,13 @@ use commands::{
     list_skills, get_skill, save_skill, delete_skill, copy_skill,
     // Plan 命令
     list_plans, get_plan_content, delete_plan,
+    // FileSystem 命令
+    fs_list_directory, fs_read_file, fs_write_file, fs_create_file,
+    fs_create_directory, fs_delete_entry, fs_rename_entry, fs_copy_entry,
+    fs_move_entry, fs_search_files, fs_get_entry_info,
 };
 use repository::{Database, ProjectRepository, HistoryRepository, TodoRepository};
-use services::{ProjectService, TerminalService, HistoryService, HooksService, JournalService, WorktreeService, WorkspaceService, SettingsService, ProviderService, NotificationService, LaunchHistoryService, TodoService, McpConfigService, SkillService, PlanService};
+use services::{ProjectService, TerminalService, HistoryService, HooksService, JournalService, WorktreeService, WorkspaceService, SettingsService, ProviderService, NotificationService, LaunchHistoryService, TodoService, McpConfigService, SkillService, PlanService, FileSystemService};
 use utils::AppPaths;
 use std::sync::Arc;
 
@@ -116,6 +120,7 @@ pub fn run() {
     let mcp_config_service = Arc::new(McpConfigService::new());
     let skill_service = Arc::new(SkillService::new());
     let plan_service = Arc::new(PlanService::new());
+    let filesystem_service = Arc::new(FileSystemService::new());
     let terminal_service = Arc::new(TerminalService::new(
         settings_service.clone(),
         provider_service.clone(),
@@ -126,6 +131,7 @@ pub fn run() {
     // 保存引用用于退出时清理
     let terminal_cleanup = terminal_service.clone();
     let history_cleanup = history_service.clone();
+    let workspace_cleanup = workspace_service.clone();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -147,7 +153,12 @@ pub fn run() {
         .manage(mcp_config_service)
         .manage(skill_service)
         .manage(plan_service)
+        .manage(filesystem_service)
         .setup(|app| {
+            // ---- 启动 workspace 目录监控 ----
+            let ws_svc = app.state::<Arc<WorkspaceService>>();
+            ws_svc.start_watcher(app.handle().clone());
+
             // ---- 系统托盘 ----
             let show = MenuItem::with_id(app, "show", "Show Window", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
@@ -228,9 +239,11 @@ pub fn run() {
             is_fullscreen,
             enter_mini_mode,
             exit_mini_mode,
+            get_app_cwd,
             // Git 命令
             get_git_branch,
             get_git_status,
+            get_git_file_statuses,
             git_clone,
             git_pull,
             git_push,
@@ -366,7 +379,19 @@ pub fn run() {
             // Plan 命令
             list_plans,
             get_plan_content,
-            delete_plan
+            delete_plan,
+            // FileSystem 命令
+            fs_list_directory,
+            fs_read_file,
+            fs_write_file,
+            fs_create_file,
+            fs_create_directory,
+            fs_delete_entry,
+            fs_rename_entry,
+            fs_copy_entry,
+            fs_move_entry,
+            fs_search_files,
+            fs_get_entry_info
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
@@ -375,6 +400,7 @@ pub fn run() {
                 eprintln!("[cleanup] Application exiting, cleaning up resources...");
                 terminal_cleanup.cleanup_all();
                 history_cleanup.stop_all_watching();
+                workspace_cleanup.stop_watcher();
             }
         });
 }

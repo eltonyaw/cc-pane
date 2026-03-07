@@ -10,7 +10,7 @@ export { useTerminalStatusStore } from "./useTerminalStatusStore";
 export { usePanesStore } from "./usePanesStore";
 export { useShortcutsStore } from "./useShortcutsStore";
 export { useDialogStore } from "./useDialogStore";
-export { useTodoStore } from "./useTodoStore";
+export { useTodoStore, BUILTIN_TODO_TYPES } from "./useTodoStore";
 export { useMemoryStore } from "./useMemoryStore";
 export { useSkillStore } from "./useSkillStore";
 export { useMcpStore } from "./useMcpStore";
@@ -23,3 +23,6 @@ export {
   shouldTerminalHandleKey,
 } from "./useShortcutsStore";
 export type { ShortcutAction } from "./useShortcutsStore";
+export { useFileTreeStore } from "./useFileTreeStore";
+export { useActivityBarStore, type ActivityView } from "./useActivityBarStore";
+export { useSelfChatStore } from "./useSelfChatStore";

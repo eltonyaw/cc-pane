@@ -51,7 +51,7 @@ export default function TodoPanel({
             )}
           </DialogTitle>
         </DialogHeader>
-        <div className="flex-1 overflow-auto px-6 py-4">
+        <div className="flex-1 overflow-hidden">
           <TodoManager scope={scope} scopeRef={scopeRef} />
         </div>
       </DialogContent>

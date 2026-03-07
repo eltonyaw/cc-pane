@@ -1,5 +1,6 @@
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, ListFilter, List, LayoutGrid, Sun } from "lucide-react";
+import { Search, List, LayoutGrid } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,28 +9,26 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import type { TodoStatus, TodoPriority, TodoScope } from "@/types";
+import { BUILTIN_TODO_TYPES } from "@/stores";
+import type { TodoStatus, TodoPriority } from "@/types";
 
 export type GroupMode = "none" | "tag" | "status" | "priority" | "scope";
 
 interface TodoFilterBarProps {
   filterStatus: TodoStatus | null;
   filterPriority: TodoPriority | null;
-  filterScope: TodoScope | null;
+  filterType: string | null;
+  customTypes: string[];
   searchText: string;
   groupMode: GroupMode;
-  viewMode: "all" | "my_day";
   onStatusChange: (status: TodoStatus | null) => void;
   onPriorityChange: (priority: TodoPriority | null) => void;
-  onScopeChange: (scope: TodoScope | null) => void;
+  onTypeChange: (type: string | null) => void;
   onSearchChange: (text: string) => void;
   onGroupModeChange: (mode: GroupMode) => void;
-  onViewModeChange: (mode: "all" | "my_day") => void;
-  /** 当有上下文锁定时，隐藏 Scope 筛选行 */
-  contextLocked?: boolean;
 }
 
-function SegmentedControl<T>({
+function PillGroup<T>({
   options,
   value,
   onChange,
@@ -39,17 +38,17 @@ function SegmentedControl<T>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div className="flex bg-muted/40 p-0.5 rounded-md border border-border/50">
+    <div className="flex flex-wrap gap-1">
       {options.map((opt) => {
         const isActive = opt.value === value;
         return (
           <button
             key={String(opt.label)}
             onClick={() => onChange(opt.value)}
-            className={`px-2 py-0.5 text-[10px] font-medium rounded-sm transition-all duration-200
+            className={`px-2.5 py-0.5 text-xs font-medium rounded-full transition-all duration-200
               ${
                 isActive
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-primary/20 text-primary font-semibold"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
               }`}
           >
@@ -61,20 +60,26 @@ function SegmentedControl<T>({
   );
 }
 
+/** 内置类型翻译键映射 */
+const TYPE_I18N_MAP: Record<string, string> = {
+  feature: "todoTypeFeature",
+  bug: "todoTypeBug",
+  docs: "todoTypeDocs",
+  chore: "todoTypeChore",
+};
+
 export default function TodoFilterBar({
   filterStatus,
   filterPriority,
-  filterScope,
+  filterType,
+  customTypes,
   searchText,
   groupMode,
-  viewMode,
   onStatusChange,
   onPriorityChange,
-  onScopeChange,
+  onTypeChange,
   onSearchChange,
   onGroupModeChange,
-  onViewModeChange,
-  contextLocked = false,
 }: TodoFilterBarProps) {
   const { t } = useTranslation("dialogs");
 
@@ -92,14 +97,18 @@ export default function TodoFilterBar({
     { value: "low", label: t("todoPriorityLow") },
   ];
 
-  const SCOPE_OPTIONS: { value: TodoScope | null; label: string }[] = [
-    { value: null, label: t("todoAll") },
-    { value: "global", label: t("todoScopeGlobal") },
-    { value: "workspace", label: t("todoScopeWorkspaceShort") },
-    { value: "project", label: t("todoScopeProject") },
-    { value: "external", label: t("todoScopeExternal") },
-    { value: "temp_script", label: t("todoScopeScript") },
-  ];
+  const TYPE_OPTIONS = useMemo((): { value: string | null; label: string }[] => {
+    const allTypes = [...BUILTIN_TODO_TYPES, ...customTypes.filter((ct) => !BUILTIN_TODO_TYPES.includes(ct as typeof BUILTIN_TODO_TYPES[number]))];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tAny = t as any;
+    return [
+      { value: null, label: t("todoTypeAll") },
+      ...allTypes.map((tp) => ({
+        value: tp as string,
+        label: (TYPE_I18N_MAP[tp] ? tAny(TYPE_I18N_MAP[tp]) : tp) as string,
+      })),
+    ];
+  }, [customTypes, t]);
 
   const GROUP_MODE_OPTIONS: { value: GroupMode; label: string }[] = [
     { value: "none", label: t("todoGroupNone") },
@@ -111,27 +120,6 @@ export default function TodoFilterBar({
 
   return (
     <div className="px-3 py-2.5 border-b border-border/50 space-y-2.5">
-      {/* 视图切换：全部 / 我的一天 */}
-      <div className="flex items-center gap-1">
-        <Button
-          size="sm"
-          variant={viewMode === "all" ? "secondary" : "ghost"}
-          className="h-7 text-xs px-2.5"
-          onClick={() => onViewModeChange("all")}
-        >
-          {t("todoAllTasks")}
-        </Button>
-        <Button
-          size="sm"
-          variant={viewMode === "my_day" ? "secondary" : "ghost"}
-          className="h-7 text-xs px-2.5 gap-1"
-          onClick={() => onViewModeChange("my_day")}
-        >
-          <Sun size={12} />
-          {t("todoMyDay")}
-        </Button>
-      </div>
-
       {/* 搜索框 + 分组切换 */}
       <div className="flex items-center gap-1.5">
         <div className="relative group flex-1">
@@ -143,7 +131,7 @@ export default function TodoFilterBar({
             value={searchText}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={t("todoSearchPlaceholder")}
-            className="h-8 text-sm pl-8 bg-muted/30 border-transparent focus:bg-background focus:border-primary/50 transition-all"
+            className="h-9 text-sm pl-8 bg-card border border-border/40 rounded-full shadow-sm focus:bg-card focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all"
           />
         </div>
         <DropdownMenu>
@@ -171,35 +159,36 @@ export default function TodoFilterBar({
         </DropdownMenu>
       </div>
 
-      {/* 筛选器 - 紧凑横向布局 */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
-        <div className="flex items-center text-muted-foreground shrink-0">
-          <ListFilter className="w-3 h-3 mr-1" />
-        </div>
-
-        <SegmentedControl
-          options={STATUS_OPTIONS}
-          value={filterStatus}
-          onChange={onStatusChange}
-        />
-
-        <SegmentedControl
-          options={PRIORITY_OPTIONS}
-          value={filterPriority}
-          onChange={onPriorityChange}
-        />
-      </div>
-
-      {/* 作用域单独一行（选项较多）— 有上下文锁定时隐藏 */}
-      {!contextLocked && (
-        <div className="flex items-center gap-2 overflow-x-auto">
-          <SegmentedControl
-            options={SCOPE_OPTIONS}
-            value={filterScope}
-            onChange={onScopeChange}
+      {/* 筛选器 - 药丸横向布局 */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+        <div className="bg-card/80 rounded-xl px-1.5 py-0.5">
+          <PillGroup
+            options={STATUS_OPTIONS}
+            value={filterStatus}
+            onChange={onStatusChange}
           />
         </div>
-      )}
+
+        <div className="w-px h-4 bg-border/40 shrink-0" />
+
+        <div className="bg-card/80 rounded-xl px-1.5 py-0.5">
+          <PillGroup
+            options={PRIORITY_OPTIONS}
+            value={filterPriority}
+            onChange={onPriorityChange}
+          />
+        </div>
+
+        <div className="w-px h-4 bg-border/40 shrink-0" />
+
+        <div className="bg-card/80 rounded-xl px-1.5 py-0.5">
+          <PillGroup
+            options={TYPE_OPTIONS}
+            value={filterType}
+            onChange={onTypeChange}
+          />
+        </div>
+      </div>
     </div>
   );
 }

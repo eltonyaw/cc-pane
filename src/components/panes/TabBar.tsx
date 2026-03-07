@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect, memo } from "react";
-import { X, Plus, PanelRight, PanelBottom, Pin, Pencil } from "lucide-react";
+import { X, Plus, PanelRight, PanelBottom, Pin, Pencil, FolderTree } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   ContextMenu,
@@ -29,6 +29,7 @@ interface TabBarProps {
   onCloseTabsToLeft: (tabId: string) => void;
   onCloseTabsToRight: (tabId: string) => void;
   onCloseOtherTabs: (tabId: string) => void;
+  onRevealInExplorer?: (tab: Tab) => void;
 }
 
 export default memo(function TabBar({
@@ -48,6 +49,7 @@ export default memo(function TabBar({
   onCloseTabsToLeft,
   onCloseTabsToRight,
   onCloseOtherTabs,
+  onRevealInExplorer,
 }: TabBarProps) {
   const { t } = useTranslation("panes");
   const getStatus = useTerminalStatusStore((s) => s.getStatus);
@@ -223,6 +225,14 @@ export default memo(function TabBar({
               <ContextMenuItem inset onClick={() => onTogglePin(tab.id)}>
                 {tab.pinned ? t("unpinTab") : t("pinTab")}
               </ContextMenuItem>
+              {tab.contentType === "editor" && tab.filePath && onRevealInExplorer && (
+                <>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem onClick={() => onRevealInExplorer(tab)}>
+                    <FolderTree /> {t("revealInExplorer")}
+                  </ContextMenuItem>
+                </>
+              )}
               <ContextMenuSeparator />
               <ContextMenuItem onClick={onSplitRight}>
                 <PanelRight /> {t("splitRight")}

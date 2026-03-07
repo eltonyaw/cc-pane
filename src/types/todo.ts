@@ -28,6 +28,7 @@ export interface TodoItem {
   scope: TodoScope;
   scopeRef?: string;
   tags: string[];
+  todoType: string;
   dueDate?: string; // RFC3339
   myDay: boolean;
   myDayDate?: string; // YYYY-MM-DD
@@ -61,6 +62,7 @@ export interface CreateTodoRequest {
   dueDate?: string;
   reminderAt?: string;
   recurrence?: string;
+  todoType?: string;
 }
 
 /** 更新 Todo 请求 */
@@ -77,6 +79,7 @@ export interface UpdateTodoRequest {
   myDayDate?: string;
   reminderAt?: string;
   recurrence?: string;
+  todoType?: string;
 }
 
 /** Todo 查询参数 */
@@ -91,6 +94,7 @@ export interface TodoQuery {
   limit?: number;
   offset?: number;
   myDay?: boolean;
+  todoType?: string;
 }
 
 /** Todo 查询结果 */

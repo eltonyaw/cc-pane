@@ -53,3 +53,14 @@ export type {
 } from "./memory";
 export type { McpServerConfig } from "./mcp";
 export type { SkillInfo, SkillSummary } from "./skill";
+export type {
+  FsEntry,
+  DirListing,
+  FileContent,
+  SearchResult,
+  FileTreeNode,
+} from "./filesystem";
+export type {
+  SelfChatStatus,
+  SelfChatSession,
+} from "./selfchat";

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import type {
   PaneNode,
@@ -156,11 +157,31 @@ interface PanesState {
   openMcpConfig: (projectPath: string, title: string) => void;
   openSkillManager: (projectPath: string, title: string) => void;
   openMemoryManager: (projectPath: string, title: string) => void;
+  openFileExplorer: (projectPath: string, title: string) => void;
+  openEditor: (projectPath: string, filePath: string, title: string) => void;
+  setTabDirty: (paneId: string, tabId: string, dirty: boolean) => void;
 }
 
 const initialPanel = createPanel();
 
+/** 递归清理重启后不可恢复的状态 */
+function cleanRehydratedPanes(node: PaneNode) {
+  if (node.type === "panel") {
+    for (const tab of node.tabs) {
+      if (tab.contentType === "terminal") {
+        tab.sessionId = null;
+      }
+      if (tab.contentType === "editor") {
+        tab.dirty = false;
+      }
+    }
+  } else {
+    node.children.forEach(cleanRehydratedPanes);
+  }
+}
+
 export const usePanesStore = create<PanesState>()(
+  persist(
   immer((set, get) => ({
     rootPane: initialPanel,
     activePaneId: initialPanel.id,
@@ -819,5 +840,97 @@ export const usePanesStore = create<PanesState>()(
         pane.activeTabId = newTab.id;
       });
     },
-  }))
+
+    openFileExplorer: (projectPath, title) => {
+      const active = get().activePane();
+      if (!active) return;
+
+      const existing = active.tabs.find(
+        (t) => t.contentType === "file-explorer" && t.projectPath === projectPath
+      );
+      if (existing) {
+        get().selectTab(active.id, existing.id);
+        return;
+      }
+
+      set((state) => {
+        const pane = findPane(state.rootPane, state.activePaneId);
+        if (pane?.type !== "panel") return;
+        const newTab: Tab = {
+          id: generateId("tab"),
+          title: `Explorer - ${title}`,
+          contentType: "file-explorer",
+          projectId: "",
+          projectPath,
+          sessionId: null,
+        };
+        pane.tabs.push(newTab);
+        pane.activeTabId = newTab.id;
+      });
+    },
+
+    openEditor: (projectPath, filePath, title) => {
+      // 跨所有 pane 查找已打开的同文件 tab
+      const allPanels = get().allPanels();
+      for (const panel of allPanels) {
+        const existing = panel.tabs.find(
+          (t) => t.contentType === "editor" && t.filePath === filePath
+        );
+        if (existing) {
+          get().selectTab(panel.id, existing.id);
+          return;
+        }
+      }
+
+      // 在活动 pane 中打开新 tab
+      const active = get().activePane();
+      if (!active) return;
+
+      set((state) => {
+        const pane = findPane(state.rootPane, state.activePaneId);
+        if (pane?.type !== "panel") return;
+        const newTab: Tab = {
+          id: generateId("tab"),
+          title,
+          contentType: "editor",
+          projectId: "",
+          projectPath,
+          sessionId: null,
+          filePath,
+          dirty: false,
+        };
+        pane.tabs.push(newTab);
+        pane.activeTabId = newTab.id;
+      });
+    },
+
+    setTabDirty: (paneId, tabId, dirty) => {
+      set((state) => {
+        const pane = findPane(state.rootPane, paneId);
+        if (pane?.type !== "panel") return;
+        const tab = pane.tabs.find((t) => t.id === tabId);
+        if (tab) tab.dirty = dirty;
+      });
+    },
+  })),
+  {
+    name: "cc-panes-layout",
+    version: 1,
+    partialize: (state) => ({
+      rootPane: state.rootPane,
+      activePaneId: state.activePaneId,
+    }),
+    merge: (persistedState, currentState) => {
+      const merged = {
+        ...currentState,
+        ...(persistedState as object),
+      };
+      // persistedState 来自 JSON.parse，未被 Immer 冻结，可安全修改
+      if (persistedState && (persistedState as Partial<PanesState>).rootPane) {
+        cleanRehydratedPanes((merged as PanesState).rootPane);
+      }
+      return merged as PanesState;
+    },
+  },
+  )
 );

@@ -57,7 +57,7 @@ export default function TodoSubtaskList({
             </span>
           </div>
           {/* 进度条 */}
-          <div className="h-1 bg-muted/50 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-muted/50 rounded-full overflow-hidden">
             <div
               className="h-full bg-primary rounded-full transition-all duration-300"
               style={{
@@ -73,8 +73,8 @@ export default function TodoSubtaskList({
         {subtasks.map((subtask) => (
           <div
             key={subtask.id}
-            className="group flex items-center gap-2.5 px-2 py-1.5 rounded-md
-                       hover:bg-muted/40 transition-colors border border-transparent hover:border-border/50"
+            className="group flex items-center gap-2.5 px-3 py-2 rounded-xl
+                       hover:bg-muted/40 hover:shadow-sm transition-all border border-transparent hover:border-border/30"
           >
             {/* 自定义 Checkbox */}
             <button

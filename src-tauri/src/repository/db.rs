@@ -112,6 +112,9 @@ impl Database {
         let _ = conn.execute("ALTER TABLE todos ADD COLUMN reminder_at TEXT", []);
         let _ = conn.execute("ALTER TABLE todos ADD COLUMN recurrence TEXT", []);
 
+        // 迁移：为 todos 表添加 todo_type 字段
+        let _ = conn.execute("ALTER TABLE todos ADD COLUMN todo_type TEXT DEFAULT ''", []);
+
         Ok(())
     }
 

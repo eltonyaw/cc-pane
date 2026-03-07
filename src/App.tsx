@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { Toaster, toast } from "sonner";
+import { useEffect, useCallback, useRef } from "react";
+import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Sidebar from "@/components/Sidebar";
-import GlobalTopBar from "@/components/GlobalTopBar";
+import TitleBar from "@/components/TitleBar";
+import ActivityBar from "@/components/ActivityBar";
+import StatusBar from "@/components/StatusBar";
 import MiniView from "@/components/MiniView";
 import { PaneContainer } from "@/components/panes";
 import SettingsPanel from "@/components/SettingsPanel";
@@ -11,6 +13,9 @@ import LocalHistoryPanel from "@/components/LocalHistoryPanel";
 import SessionCleanerPanel from "@/components/SessionCleanerPanel";
 import TodoPanel from "@/components/TodoPanel";
 import PlansPanel from "@/components/PlansPanel";
+import TodoManager from "@/components/todo/TodoManager";
+import SelfChatPanel from "@/components/SelfChatPanel";
+import { SelfChatManager } from "@/components/selfchat";
 import BorderlessFloatingButton from "@/components/BorderlessFloatingButton";
 import {
   usePanesStore,
@@ -21,9 +26,12 @@ import {
   useTerminalStatusStore,
   useDialogStore,
   useSettingsStore,
+  useActivityBarStore,
+  useWorkspacesStore,
 } from "@/stores";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useTodoReminders } from "@/hooks/useTodoReminders";
+import { useWorkspaceWatcher } from "@/hooks/useWorkspaceWatcher";
 import { historyService, terminalService, localHistoryService, hooksService } from "@/services";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { invoke } from "@tauri-apps/api/core";
@@ -51,7 +59,11 @@ export default function App() {
   const rootPane = usePanesStore((s) => s.rootPane);
   const openProject = usePanesStore((s) => s.openProject);
 
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const sidebarVisible = useActivityBarStore((s) => s.sidebarVisible);
+  const activeView = useActivityBarStore((s) => s.activeView);
+  const appViewMode = useActivityBarStore((s) => s.appViewMode);
+
+  const selectedWorkspace = useWorkspacesStore((s) => s.selectedWorkspace);
 
   // Session tracking map: ptySessionId -> { recordId, projectPath, claudeSessionId }
   const sessionMapRef = useRef<Map<string, SessionTrackInfo>>(new Map());
@@ -70,6 +82,7 @@ export default function App() {
   const todoScopeRef = useDialogStore((s) => s.todoScopeRef);
   const plansOpen = useDialogStore((s) => s.plansOpen);
   const plansProjectPath = useDialogStore((s) => s.plansProjectPath);
+  const selfChatOpen = useDialogStore((s) => s.selfChatOpen);
   const pendingLaunch = useDialogStore((s) => s.pendingLaunch);
   const clearPendingLaunch = useDialogStore((s) => s.clearPendingLaunch);
 
@@ -78,6 +91,9 @@ export default function App() {
 
   // Todo 提醒轮询
   useTodoReminders();
+
+  // 监听外部工作空间变更（文件系统 watcher）
+  useWorkspaceWatcher();
 
   // 初始化设置 + TerminalStatusStore（等待 Tauri IPC 就绪）
   useEffect(() => {
@@ -128,7 +144,7 @@ export default function App() {
     register({
       id: "toggle-sidebar",
       label: i18n.t("toggle-sidebar", { ns: "shortcuts" }),
-      handler: () => setSidebarCollapsed((prev) => !prev),
+      handler: () => useActivityBarStore.getState().toggleSidebar(),
     });
     register({
       id: "toggle-fullscreen",
@@ -200,6 +216,21 @@ export default function App() {
       id: "toggle-mini-mode",
       label: i18n.t("toggle-mini-mode", { ns: "shortcuts" }),
       handler: () => useMiniModeStore.getState().toggleMiniMode(),
+    });
+    register({
+      id: "show-explorer",
+      label: "Explorer",
+      handler: () => useActivityBarStore.getState().toggleView("explorer"),
+    });
+    register({
+      id: "show-search",
+      label: "Search",
+      handler: () => useActivityBarStore.getState().toggleView("search"),
+    });
+    register({
+      id: "show-sessions",
+      label: "Sessions",
+      handler: () => useActivityBarStore.getState().toggleView("sessions"),
     });
     for (let i = 1; i <= 9; i++) {
       register({
@@ -336,18 +367,6 @@ export default function App() {
     }
   }, [pendingLaunch, clearPendingLaunch, handleOpenTerminal]);
 
-  const handleImport = useCallback(() => {
-    toast.info(i18n.t("importHint", { ns: "sidebar" }));
-  }, []);
-
-  const handleNew = useCallback(() => {
-    toast.info(i18n.t("newHint", { ns: "sidebar" }));
-  }, []);
-
-  const handleSettings = useCallback(() => {
-    useDialogStore.getState().openSettings();
-  }, []);
-
   return (
     <TooltipProvider delayDuration={300}>
       <div className="app h-full flex flex-col relative z-[1]">
@@ -395,27 +414,37 @@ export default function App() {
           <MiniView />
         ) : (
           <>
-            <GlobalTopBar
-              sidebarCollapsed={sidebarCollapsed}
-              onToggleSidebar={() => setSidebarCollapsed((prev) => !prev)}
-              onImport={handleImport}
-              onNew={handleNew}
-            />
-            {/* 主区域：Sidebar | 主内容区 */}
+            <TitleBar workspaceName={selectedWorkspace()?.alias || selectedWorkspace()?.name} />
+            {/* 主区域：ActivityBar | Sidebar/Todo | 主内容区 */}
             <div className="flex-1 flex overflow-hidden relative z-[1]">
-              {/* 侧边栏 */}
-              <Sidebar
-                collapsed={sidebarCollapsed}
-                onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
-                onOpenTerminal={handleOpenTerminal}
-                onSettings={handleSettings}
-              />
-
-              {/* 面板区域 */}
-              <div className="flex-1 overflow-hidden bg-transparent p-1.5">
-                <PaneContainer pane={rootPane} />
-              </div>
+              <ActivityBar />
+              {appViewMode === "todo" ? (
+                /* Todo 全屏模式：占满 ActivityBar 右侧所有空间 */
+                <div className="flex-1 overflow-hidden">
+                  <TodoManager scope="" scopeRef="" />
+                </div>
+              ) : appViewMode === "selfchat" ? (
+                /* Self-Chat 全屏模式 */
+                <div className="flex-1 overflow-hidden">
+                  <SelfChatManager />
+                </div>
+              ) : (
+                <>
+                  {/* 侧边栏 */}
+                  {sidebarVisible && (
+                    <Sidebar
+                      activeView={activeView}
+                      onOpenTerminal={handleOpenTerminal}
+                    />
+                  )}
+                  {/* 面板区域 */}
+                  <div className="flex-1 overflow-hidden bg-transparent p-1.5">
+                    <PaneContainer pane={rootPane} />
+                  </div>
+                </>
+              )}
             </div>
+            <StatusBar />
           </>
         )}
 
@@ -453,6 +482,10 @@ export default function App() {
           open={plansOpen}
           onOpenChange={(open) => open ? useDialogStore.getState().openPlans(plansProjectPath) : useDialogStore.getState().closePlans()}
           projectPath={plansProjectPath}
+        />
+        <SelfChatPanel
+          open={selfChatOpen}
+          onOpenChange={(open) => open ? useDialogStore.getState().openSelfChat() : useDialogStore.getState().closeSelfChat()}
         />
       </div>
     </TooltipProvider>

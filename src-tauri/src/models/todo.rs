@@ -123,6 +123,7 @@ pub struct TodoItem {
     pub reminder_at: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub recurrence: Option<String>,
+    pub todo_type: String,
     pub sort_order: i32,
     pub created_at: String,
     pub updated_at: String,
@@ -164,6 +165,8 @@ pub struct CreateTodoRequest {
     pub reminder_at: Option<String>,
     #[serde(default)]
     pub recurrence: Option<String>,
+    #[serde(default)]
+    pub todo_type: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -193,6 +196,8 @@ pub struct UpdateTodoRequest {
     pub reminder_at: Option<String>,
     #[serde(default)]
     pub recurrence: Option<String>,
+    #[serde(default)]
+    pub todo_type: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -218,6 +223,8 @@ pub struct TodoQuery {
     pub offset: Option<u32>,
     #[serde(default)]
     pub my_day: Option<bool>,
+    #[serde(default)]
+    pub todo_type: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -294,6 +301,7 @@ mod tests {
             my_day_date: None,
             reminder_at: None,
             recurrence: None,
+            todo_type: String::new(),
             sort_order: 0,
             created_at: "2025-01-01T00:00:00Z".to_string(),
             updated_at: "2025-01-01T00:00:00Z".to_string(),
@@ -303,6 +311,7 @@ mod tests {
         let value: serde_json::Value = serde_json::from_str(&json).unwrap();
         assert!(value.get("createdAt").is_some());
         assert!(value.get("sortOrder").is_some());
+        assert!(value.get("todoType").is_some());
         assert!(value.get("created_at").is_none());
     }
 

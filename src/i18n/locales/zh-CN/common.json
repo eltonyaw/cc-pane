@@ -40,5 +40,15 @@
   "miniUnpin": "取消置顶",
   "miniPin": "窗口置顶",
   "miniRestore": "恢复窗口",
-  "miniNoActiveSessions": "无活跃会话"
+  "miniNoActiveSessions": "无活跃会话",
+  "settings": "设置",
+  "selfChat": "自我对话",
+  "selfChat.title": "CC-Panes 助手",
+  "selfChat.restart": "重启会话",
+  "selfChat.emptyState": "正在启动 CC-Panes 助手...",
+  "selfChat.contextInjected": "已注入",
+  "selfChat.injecting": "注入中...",
+  "selfChat.notInjected": "未注入",
+  "selfChat.reinject": "重新注入",
+  "selfChat.endSession": "结束会话"
 }

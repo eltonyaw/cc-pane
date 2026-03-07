@@ -40,5 +40,15 @@
   "miniUnpin": "Unpin",
   "miniPin": "Pin Window",
   "miniRestore": "Restore Window",
-  "miniNoActiveSessions": "No active sessions"
+  "miniNoActiveSessions": "No active sessions",
+  "settings": "Settings",
+  "selfChat": "Self Chat",
+  "selfChat.title": "CC-Panes Assistant",
+  "selfChat.restart": "Restart Session",
+  "selfChat.emptyState": "Starting CC-Panes assistant...",
+  "selfChat.contextInjected": "Injected",
+  "selfChat.injecting": "Injecting...",
+  "selfChat.notInjected": "Not injected",
+  "selfChat.reinject": "Re-inject",
+  "selfChat.endSession": "End Session"
 }

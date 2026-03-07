@@ -270,6 +270,16 @@
   margin: -1px 0;
 }
 
+/* Activity Bar 样式 */
+.activity-bar {
+  transition: opacity 0.15s ease;
+}
+
+/* Activity Bar 与 Sidebar 视觉融合 — 无分隔线 */
+.activity-bar + .sidebar {
+  border-left: none;
+}
+
 /* 侧边栏 sash：更明显的分割线 */
 
 /* 侧边栏与主面板之间的垂直分割线 */

@@ -6,7 +6,7 @@
 export interface Tab {
   id: string;
   title: string;
-  contentType: "terminal" | "mcp-config" | "skill-manager" | "memory-manager";
+  contentType: "terminal" | "mcp-config" | "skill-manager" | "memory-manager" | "file-explorer" | "editor";
   projectId: string;
   projectPath: string;
   sessionId: string | null; // 终端特有，其他类型可忽略
@@ -17,6 +17,8 @@ export interface Tab {
   providerId?: string; // 关联的 Provider ID
   workspacePath?: string; // 工作空间根目录路径（用于 claude --add-dir 模式）
   launchClaude?: boolean; // 是否启动 Claude Code CLI
+  filePath?: string; // 编辑器打开的文件绝对路径
+  dirty?: boolean; // 是否有未保存修改
 }
 
 /** 终端会话状态 */

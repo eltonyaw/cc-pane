@@ -45,6 +45,7 @@ impl TodoService {
             my_day_date: None,
             reminder_at: req.reminder_at,
             recurrence: req.recurrence,
+            todo_type: req.todo_type.unwrap_or_default(),
             sort_order,
             created_at: now.clone(),
             updated_at: now,
@@ -147,6 +148,7 @@ impl TodoService {
             due_date: next_due,
             reminder_at: next_reminder,
             recurrence: Some(recurrence.to_string()),
+            todo_type: Some(old.todo_type.clone()),
         };
 
         self.create_todo(req)

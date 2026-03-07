@@ -22,8 +22,8 @@ impl TodoRepository {
             .map_err(|e| format!("Failed to serialize tags: {}", e))?;
 
         conn.execute(
-            "INSERT INTO todos (id, title, description, status, priority, scope, scope_ref, tags, due_date, my_day, my_day_date, reminder_at, recurrence, sort_order, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
+            "INSERT INTO todos (id, title, description, status, priority, scope, scope_ref, tags, due_date, my_day, my_day_date, reminder_at, recurrence, todo_type, sort_order, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)",
             params![
                 todo.id,
                 todo.title,
@@ -38,6 +38,7 @@ impl TodoRepository {
                 todo.my_day_date,
                 todo.reminder_at,
                 todo.recurrence,
+                todo.todo_type,
                 todo.sort_order,
                 todo.created_at,
                 todo.updated_at,
@@ -54,7 +55,7 @@ impl TodoRepository {
         let todo_opt = {
             let conn = self.db.connection().map_err(|e| e.to_string())?;
             let result = conn.query_row(
-                "SELECT id, title, description, status, priority, scope, scope_ref, tags, due_date, my_day, my_day_date, reminder_at, recurrence, sort_order, created_at, updated_at
+                "SELECT id, title, description, status, priority, scope, scope_ref, tags, due_date, my_day, my_day_date, reminder_at, recurrence, todo_type, sort_order, created_at, updated_at
                  FROM todos WHERE id = ?1",
                 params![id],
                 |row| Ok(Self::row_to_todo(row)),
@@ -134,6 +135,10 @@ impl TodoRepository {
             sets.push("recurrence = ?");
             values.push(Box::new(recurrence.clone()));
         }
+        if let Some(ref todo_type) = req.todo_type {
+            sets.push("todo_type = ?");
+            values.push(Box::new(todo_type.clone()));
+        }
 
         if sets.is_empty() {
             return Ok(false);
@@ -203,6 +208,10 @@ impl TodoRepository {
                 conditions.push("tags LIKE ?");
                 values.push(Box::new(format!("%\"{}\"%" , tag)));
             }
+            if let Some(ref todo_type) = query.todo_type {
+                conditions.push("todo_type = ?");
+                values.push(Box::new(todo_type.clone()));
+            }
             if let Some(true) = query.my_day {
                 conditions.push("my_day = 1 AND my_day_date = ?");
                 let today = chrono::Local::now().format("%Y-%m-%d").to_string();
@@ -236,7 +245,7 @@ impl TodoRepository {
             let offset = query.offset.unwrap_or(0);
 
             let data_sql = format!(
-                "SELECT id, title, description, status, priority, scope, scope_ref, tags, due_date, my_day, my_day_date, reminder_at, recurrence, sort_order, created_at, updated_at
+                "SELECT id, title, description, status, priority, scope, scope_ref, tags, due_date, my_day, my_day_date, reminder_at, recurrence, todo_type, sort_order, created_at, updated_at
                  FROM todos {} ORDER BY {} LIMIT ? OFFSET ?",
                 where_clause, order
             );
@@ -432,7 +441,7 @@ impl TodoRepository {
         let conn = self.db.connection().map_err(|e| e.to_string())?;
         let mut stmt = conn
             .prepare(
-                "SELECT id, title, description, status, priority, scope, scope_ref, tags, due_date, my_day, my_day_date, reminder_at, recurrence, sort_order, created_at, updated_at
+                "SELECT id, title, description, status, priority, scope, scope_ref, tags, due_date, my_day, my_day_date, reminder_at, recurrence, todo_type, sort_order, created_at, updated_at
                  FROM todos WHERE reminder_at IS NOT NULL AND reminder_at <= ?1 AND status != 'done'",
             )
             .map_err(|e| e.to_string())?;
@@ -615,9 +624,10 @@ impl TodoRepository {
             my_day_date: row.get(10).map_err(|e| e.to_string())?,
             reminder_at: row.get(11).map_err(|e| e.to_string())?,
             recurrence: row.get(12).map_err(|e| e.to_string())?,
-            sort_order: row.get(13).map_err(|e| e.to_string())?,
-            created_at: row.get(14).map_err(|e| e.to_string())?,
-            updated_at: row.get(15).map_err(|e| e.to_string())?,
+            todo_type: row.get::<_, Option<String>>(13).map_err(|e| e.to_string())?.unwrap_or_default(),
+            sort_order: row.get(14).map_err(|e| e.to_string())?,
+            created_at: row.get(15).map_err(|e| e.to_string())?,
+            updated_at: row.get(16).map_err(|e| e.to_string())?,
             subtasks: vec![], // 由调用者填充
         })
     }
@@ -647,6 +657,7 @@ mod tests {
             my_day_date: None,
             reminder_at: None,
             recurrence: None,
+            todo_type: String::new(),
             sort_order: 0,
             created_at: chrono::Utc::now().to_rfc3339(),
             updated_at: chrono::Utc::now().to_rfc3339(),

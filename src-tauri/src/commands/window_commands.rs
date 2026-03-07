@@ -76,3 +76,12 @@ pub fn exit_mini_mode(
     window.set_size(LogicalSize::new(width, height))?;
     Ok(())
 }
+
+/// 获取应用当前工作目录（tauri dev 时为项目根目录）
+#[tauri::command]
+pub fn get_app_cwd() -> AppResult<String> {
+    Ok(std::env::current_dir()
+        .map_err(|e| format!("Failed to get CWD: {}", e))?
+        .to_string_lossy()
+        .to_string())
+}

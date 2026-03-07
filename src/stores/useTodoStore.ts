@@ -19,6 +19,9 @@ import type {
   UpdateTodoRequest,
 } from "@/types";
 
+/** 预定义类型常量（不可删除） */
+export const BUILTIN_TODO_TYPES = ["feature", "bug", "docs", "chore"] as const;
+
 interface TodoState {
   // 列表
   todos: TodoItem[];
@@ -30,7 +33,11 @@ interface TodoState {
   filterStatus: TodoStatus | null;
   filterScope: TodoScope | null;
   filterPriority: TodoPriority | null;
+  filterType: string | null;
   searchText: string;
+
+  // 自定义类型
+  customTypes: string[];
 
   // 当前选中
   selectedTodo: TodoItem | null;
@@ -54,6 +61,9 @@ interface TodoState {
   setFilterStatus: (status: TodoStatus | null) => void;
   setFilterScope: (scope: TodoScope | null) => void;
   setFilterPriority: (priority: TodoPriority | null) => void;
+  setFilterType: (type: string | null) => void;
+  addCustomType: (type: string) => void;
+  removeCustomType: (type: string) => void;
   setSearchText: (text: string) => void;
   setContext: (scope: TodoScope | null, scopeRef: string | null) => void;
   reorder: (todoIds: string[]) => Promise<void>;
@@ -74,7 +84,9 @@ const INITIAL_STATE = {
   filterStatus: null as TodoStatus | null,
   filterScope: null as TodoScope | null,
   filterPriority: null as TodoPriority | null,
+  filterType: null as string | null,
   searchText: "",
+  customTypes: JSON.parse(localStorage.getItem("cc-panes-todo-custom-types") || "[]") as string[],
   selectedTodo: null as TodoItem | null,
   viewMode: "all" as "all" | "my_day",
   contextScope: null as TodoScope | null,
@@ -91,13 +103,14 @@ export const useTodoStore = create<TodoState>()(
         state.loading = true;
       });
       try {
-        const { filterStatus, filterScope, filterPriority, searchText, contextScope, contextScopeRef, viewMode } = get();
+        const { filterStatus, filterScope, filterPriority, filterType, searchText, contextScope, contextScopeRef, viewMode } = get();
         const mergedQuery: TodoQuery = {
           status: query?.status ?? filterStatus ?? undefined,
           priority: query?.priority ?? filterPriority ?? undefined,
           scope: query?.scope ?? filterScope ?? contextScope ?? undefined,
           scopeRef: query?.scopeRef ?? contextScopeRef ?? undefined,
           search: query?.search ?? (searchText.trim() || undefined),
+          todoType: query?.todoType ?? filterType ?? undefined,
           myDay: viewMode === "my_day" ? true : undefined,
           limit: query?.limit ?? 100,
           offset: query?.offset ?? 0,
@@ -173,6 +186,30 @@ export const useTodoStore = create<TodoState>()(
         state.filterPriority = priority;
       });
       get().loadList();
+    },
+
+    setFilterType: (type) => {
+      set((state) => {
+        state.filterType = type;
+      });
+      get().loadList();
+    },
+
+    addCustomType: (type) => {
+      set((state) => {
+        const trimmed = type.trim().toLowerCase();
+        if (trimmed && !state.customTypes.includes(trimmed)) {
+          state.customTypes.push(trimmed);
+        }
+      });
+      localStorage.setItem("cc-panes-todo-custom-types", JSON.stringify(get().customTypes));
+    },
+
+    removeCustomType: (type) => {
+      set((state) => {
+        state.customTypes = state.customTypes.filter((t) => t !== type);
+      });
+      localStorage.setItem("cc-panes-todo-custom-types", JSON.stringify(get().customTypes));
     },
 
     setSearchText: (text) =>

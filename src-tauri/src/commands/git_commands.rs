@@ -4,6 +4,7 @@ use crate::utils::{
     GIT_LOCAL_TIMEOUT, GIT_NETWORK_TIMEOUT,
 };
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::sync::Arc;
@@ -312,4 +313,55 @@ fn parse_git_progress(line: &str) -> GitCloneProgress {
         percent,
         message: line.to_string(),
     }
+}
+
+/// 获取项目中所有文件的 Git 状态（用于文件树着色）
+#[tauri::command]
+pub fn get_git_file_statuses(path: String) -> AppResult<HashMap<String, String>> {
+    validate_path(&path)?;
+    let project_path = Path::new(&path);
+    if !project_path.exists() {
+        return Ok(HashMap::new());
+    }
+
+    let output = output_with_timeout(
+        Command::new("git")
+            .args(["status", "--porcelain", "-unormal"])
+            .current_dir(project_path),
+        GIT_LOCAL_TIMEOUT,
+    )?;
+
+    if !output.status.success() {
+        return Ok(HashMap::new());
+    }
+
+    let mut map = HashMap::new();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for line in stdout.lines() {
+        if line.len() < 4 {
+            continue;
+        }
+        let status_code = &line[..2];
+        let file_path = line[3..].trim();
+        // 处理重命名情况: "R  old -> new"
+        let actual_path = if let Some(arrow_pos) = file_path.find(" -> ") {
+            &file_path[arrow_pos + 4..]
+        } else {
+            file_path
+        };
+        let abs = project_path.join(actual_path);
+        let abs_str = abs.to_string_lossy().to_string();
+        let status = match status_code.trim() {
+            "M" | "MM" => "modified",
+            "A" | "AM" => "added",
+            "D" => "deleted",
+            "R" | "RM" => "renamed",
+            "??" => "untracked",
+            s if s.ends_with('M') => "modified",
+            s if s.ends_with('D') => "deleted",
+            _ => "modified",
+        };
+        map.insert(abs_str, status.to_string());
+    }
+    Ok(map)
 }

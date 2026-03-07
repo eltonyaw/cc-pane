@@ -8,7 +8,7 @@ interface BorderlessState {
 }
 
 export const useBorderlessStore = create<BorderlessState>((set, get) => ({
-  isBorderless: true,
+  isBorderless: false,
 
   toggleBorderless: async () => {
     const next = !get().isBorderless;
