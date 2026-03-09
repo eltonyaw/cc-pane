@@ -130,6 +130,15 @@ pub fn trigger_screenshot(app: &tauri::AppHandle) {
     #[allow(unused_variables)]
     let app = app.clone();
     std::thread::spawn(move || {
+        // Drop guard: 确保 CAPTURING 在 panic 或提前返回时也能重置
+        struct CapturingGuard;
+        impl Drop for CapturingGuard {
+            fn drop(&mut self) {
+                CAPTURING.store(false, Ordering::SeqCst);
+            }
+        }
+        let _guard = CapturingGuard;
+
         let t0 = Instant::now();
         eprintln!("[screenshot] +0ms: start (display affinity set)");
 
@@ -146,8 +155,7 @@ pub fn trigger_screenshot(app: &tauri::AppHandle) {
                 restore_display_affinity(main_hwnd);
                 #[cfg(not(target_os = "windows"))]
                 restore_main_window_tauri(&app);
-                CAPTURING.store(false, Ordering::SeqCst);
-                return;
+                return; // _guard Drop 会自动重置 CAPTURING
             }
         };
         eprintln!(
@@ -202,7 +210,7 @@ pub fn trigger_screenshot(app: &tauri::AppHandle) {
         restore_main_window_tauri(&app);
 
         eprintln!("[screenshot] +{}ms: display affinity restored", t0.elapsed().as_millis());
-        CAPTURING.store(false, Ordering::SeqCst);
+        // _guard Drop 会自动重置 CAPTURING
     });
 }
 
@@ -247,10 +255,16 @@ fn copy_to_clipboard_win32(text: &str) {
         let hmem = GlobalAlloc(GMEM_MOVEABLE, size);
         if let Ok(hmem) = hmem {
             let ptr = GlobalLock(hmem);
-            if !ptr.is_null() {
+            if ptr.is_null() {
+                // GlobalLock 失败：释放已分配的内存
+                let _ = GlobalFree(Some(hmem));
+            } else {
                 std::ptr::copy_nonoverlapping(wide.as_ptr() as *const u8, ptr as *mut u8, size);
                 let _ = GlobalUnlock(hmem);
-                let _ = SetClipboardData(CF_UNICODETEXT.0 as u32, Some(HANDLE(hmem.0)));
+                // SetClipboardData 成功后系统接管 hmem，失败则需手动释放
+                if SetClipboardData(CF_UNICODETEXT.0 as u32, Some(HANDLE(hmem.0))).is_err() {
+                    let _ = GlobalFree(Some(hmem));
+                }
             }
         }
         let _ = CloseClipboard();

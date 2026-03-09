@@ -48,8 +48,9 @@ mod win32_impl {
         has_selection: bool,
         /// 用户确认了选区（松开鼠标）
         confirmed: bool,
-        /// 用户取消了选区（ESC）
-        _cancelled: bool,
+        /// 缓存的遮罩位图 DC（避免每次 WM_PAINT 重新分配 GDI 对象）
+        mask_dc: HDC,
+        mask_bmp: HBITMAP,
     }
 
     /// 显示全屏选区窗口，返回用户选中的矩形区域（物理像素坐标）。
@@ -107,7 +108,11 @@ mod win32_impl {
                 lpszClassName: class_name,
                 ..Default::default()
             };
-            RegisterClassExW(&wc);
+            let atom = RegisterClassExW(&wc);
+            if atom == 0 {
+                eprintln!("[screenshot-overlay] RegisterClassExW failed");
+                return None;
+            }
 
             // 窗口和位图都使用 monitor 物理像素尺寸
             // （DPI aware 后 monitor_width/height 就是物理像素）
@@ -119,10 +124,32 @@ mod win32_impl {
             let bg_dc = CreateCompatibleDC(Some(screen_dc));
             let bg_bmp = create_bitmap_from_rgba(screen_dc, screenshot, win_w, win_h);
             SelectObject(bg_dc, bg_bmp.into());
+
+            // 预分配遮罩位图（全屏尺寸，全黑），避免每次 WM_PAINT 创建/销毁
+            let mask_dc = CreateCompatibleDC(Some(screen_dc));
+            let mask_bmi = BITMAPINFO {
+                bmiHeader: BITMAPINFOHEADER {
+                    biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
+                    biWidth: win_w,
+                    biHeight: -win_h,
+                    biPlanes: 1,
+                    biBitCount: 32,
+                    biCompression: BI_RGB.0,
+                    ..Default::default()
+                },
+                ..Default::default()
+            };
+            let mut _mask_bits: *mut std::ffi::c_void = std::ptr::null_mut();
+            let mask_bmp = CreateDIBSection(
+                Some(screen_dc), &mask_bmi, DIB_RGB_COLORS, &mut _mask_bits, None, 0,
+            ).unwrap_or_default();
+            SelectObject(mask_dc, mask_bmp.into());
+            // DIBSection 初始化为全零（全黑），正好用于 AlphaBlend 遮罩
+
             ReleaseDC(None, screen_dc);
 
-            // 初始化共享状态
-            let mut state = OverlayState {
+            // 初始化共享状态（堆分配，避免栈指针脆弱性）
+            let state_box = Box::new(OverlayState {
                 bg_dc,
                 _bg_bmp: bg_bmp,
                 img_width: win_w,
@@ -134,10 +161,11 @@ mod win32_impl {
                 end_y: 0,
                 has_selection: false,
                 confirmed: false,
-                _cancelled: false,
-            };
-
-            let state_ptr = &mut state as *mut OverlayState as isize;
+                mask_dc,
+                mask_bmp,
+            });
+            let state_raw = Box::into_raw(state_box);
+            let state_ptr = state_raw as isize;
 
             // 创建全屏窗口（物理像素坐标/尺寸）
             let hwnd = CreateWindowExW(
@@ -157,7 +185,10 @@ mod win32_impl {
             .unwrap_or_default();
 
             if hwnd.0.is_null() {
-                // 清理
+                // 清理：回收堆 state + 所有 GDI 资源
+                let failed_state = Box::from_raw(state_raw);
+                let _ = DeleteDC(failed_state.mask_dc);
+                let _ = DeleteObject(failed_state.mask_bmp.into());
                 let _ = DeleteDC(bg_dc);
                 let _ = DeleteObject(bg_bmp.into());
                 let _ = UnregisterClassW(class_name, Some(hinstance.into()));
@@ -176,6 +207,9 @@ mod win32_impl {
 
             // 立即销毁窗口（不留残影）
             let _ = DestroyWindow(hwnd);
+
+            // 回收堆分配的 state
+            let state = Box::from_raw(state_raw);
 
             // 读取结果（窗口坐标 → 原始图像坐标）
             let result = if state.confirmed && state.has_selection {
@@ -208,7 +242,9 @@ mod win32_impl {
                 None
             };
 
-            // 清理
+            // 清理 GDI 资源（含缓存的遮罩位图）
+            let _ = DeleteDC(state.mask_dc);
+            let _ = DeleteObject(state.mask_bmp.into());
             let _ = DeleteDC(bg_dc);
             let _ = DeleteObject(bg_bmp.into());
             let _ = UnregisterClassW(class_name, Some(hinstance.into()));
@@ -341,22 +377,22 @@ mod win32_impl {
             }
             WM_PAINT => {
                 let state = get_state(hwnd);
-                if let Some(state) = state {
-                    paint(hwnd, state);
+                if !state.is_null() {
+                    paint(hwnd, &*state);
                 }
                 LRESULT(0)
             }
             WM_LBUTTONDOWN => {
                 let state = get_state(hwnd);
-                if let Some(state) = state {
+                if !state.is_null() {
                     let x = (lparam.0 & 0xFFFF) as i16 as i32;
                     let y = ((lparam.0 >> 16) & 0xFFFF) as i16 as i32;
-                    state.dragging = true;
-                    state.start_x = x;
-                    state.start_y = y;
-                    state.end_x = x;
-                    state.end_y = y;
-                    state.has_selection = false;
+                    (*state).dragging = true;
+                    (*state).start_x = x;
+                    (*state).start_y = y;
+                    (*state).end_x = x;
+                    (*state).end_y = y;
+                    (*state).has_selection = false;
                     SetCapture(hwnd);
                     let _ = InvalidateRect(Some(hwnd), None, false);
                 }
@@ -364,41 +400,36 @@ mod win32_impl {
             }
             WM_MOUSEMOVE => {
                 let state = get_state(hwnd);
-                if let Some(state) = state {
-                    if state.dragging {
-                        let x = (lparam.0 & 0xFFFF) as i16 as i32;
-                        let y = ((lparam.0 >> 16) & 0xFFFF) as i16 as i32;
-                        state.end_x = x;
-                        state.end_y = y;
-                        state.has_selection = true;
-                        let _ = InvalidateRect(Some(hwnd), None, false);
-                    }
+                if !state.is_null() && (*state).dragging {
+                    let x = (lparam.0 & 0xFFFF) as i16 as i32;
+                    let y = ((lparam.0 >> 16) & 0xFFFF) as i16 as i32;
+                    (*state).end_x = x;
+                    (*state).end_y = y;
+                    (*state).has_selection = true;
+                    let _ = InvalidateRect(Some(hwnd), None, false);
                 }
                 LRESULT(0)
             }
             WM_LBUTTONUP => {
                 let state = get_state(hwnd);
-                if let Some(state) = state {
-                    if state.dragging {
-                        let x = (lparam.0 & 0xFFFF) as i16 as i32;
-                        let y = ((lparam.0 >> 16) & 0xFFFF) as i16 as i32;
-                        state.end_x = x;
-                        state.end_y = y;
-                        state.dragging = false;
-                        state.has_selection = true;
-                        state.confirmed = true;
-                        let _ = ReleaseCapture();
-                        PostQuitMessage(0);
-                    }
+                if !state.is_null() && (*state).dragging {
+                    let x = (lparam.0 & 0xFFFF) as i16 as i32;
+                    let y = ((lparam.0 >> 16) & 0xFFFF) as i16 as i32;
+                    (*state).end_x = x;
+                    (*state).end_y = y;
+                    (*state).dragging = false;
+                    (*state).has_selection = true;
+                    (*state).confirmed = true;
+                    let _ = ReleaseCapture();
+                    PostQuitMessage(0);
                 }
                 LRESULT(0)
             }
             WM_KEYDOWN => {
                 if wparam.0 == VK_ESCAPE.0 as usize {
                     let state = get_state(hwnd);
-                    if let Some(state) = state {
-                        state._cancelled = true;
-                        state.confirmed = false;
+                    if !state.is_null() {
+                        (*state).confirmed = false;
                     }
                     PostQuitMessage(0);
                 }
@@ -418,13 +449,13 @@ mod win32_impl {
         }
     }
 
-    /// 从窗口用户数据中获取 state 引用
-    unsafe fn get_state<'a>(hwnd: HWND) -> Option<&'a mut OverlayState> {
+    /// 从窗口用户数据中获取 state 裸指针（避免 &mut 别名 UB）
+    unsafe fn get_state(hwnd: HWND) -> *mut OverlayState {
         let ptr = GetWindowLongPtrW(hwnd, GWLP_USERDATA);
         if ptr == 0 {
-            None
+            std::ptr::null_mut()
         } else {
-            Some(&mut *(ptr as *mut OverlayState))
+            ptr as *mut OverlayState
         }
     }
 
@@ -451,11 +482,11 @@ mod win32_impl {
                 state.end_x, state.end_y,
             );
 
-            // 选区外区域绘制半透明遮罩（分四个矩形）
-            draw_mask_region(mem_dc, 0, 0, w, y1);       // 上
-            draw_mask_region(mem_dc, 0, y1, x1, y2);     // 左
-            draw_mask_region(mem_dc, x2, y1, w, y2);     // 右
-            draw_mask_region(mem_dc, 0, y2, w, h);       // 下
+            // 选区外区域绘制半透明遮罩（分四个矩形，使用缓存的 mask_dc）
+            draw_mask_region(mem_dc, state.mask_dc, 0, 0, w, y1);       // 上
+            draw_mask_region(mem_dc, state.mask_dc, 0, y1, x1, y2);     // 左
+            draw_mask_region(mem_dc, state.mask_dc, x2, y1, w, y2);     // 右
+            draw_mask_region(mem_dc, state.mask_dc, 0, y2, w, h);       // 下
 
             // 3. 选区边框（2px 蓝色 #4fc3f7）
             let pen = CreatePen(PS_SOLID, 2, COLORREF(0x00f7c34f)); // BGR: 4f c3 f7
@@ -473,7 +504,7 @@ mod win32_impl {
             draw_size_label(mem_dc, x1, y1, sel_w, sel_h);
         } else {
             // 无选区：全屏遮罩
-            draw_mask_region(mem_dc, 0, 0, w, h);
+            draw_mask_region(mem_dc, state.mask_dc, 0, 0, w, h);
         }
 
         // 一次性拷贝到屏幕
@@ -487,8 +518,8 @@ mod win32_impl {
         let _ = EndPaint(hwnd, &ps);
     }
 
-    /// 绘制半透明遮罩区域（40% 黑色）
-    unsafe fn draw_mask_region(hdc: HDC, x1: i32, y1: i32, x2: i32, y2: i32) {
+    /// 绘制半透明遮罩区域（40% 黑色），使用缓存的 mask_dc 避免高频 GDI 分配
+    unsafe fn draw_mask_region(hdc: HDC, mask_dc: HDC, x1: i32, y1: i32, x2: i32, y2: i32) {
         if x2 <= x1 || y2 <= y1 {
             return;
         }
@@ -496,28 +527,7 @@ mod win32_impl {
         let rw = x2 - x1;
         let rh = y2 - y1;
 
-        // 创建遮罩位图（全黑）
-        let mask_dc = CreateCompatibleDC(Some(hdc));
-        let bmi = BITMAPINFO {
-            bmiHeader: BITMAPINFOHEADER {
-                biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
-                biWidth: rw,
-                biHeight: -rh,
-                biPlanes: 1,
-                biBitCount: 32,
-                biCompression: BI_RGB.0,
-                ..Default::default()
-            },
-            ..Default::default()
-        };
-        let mut bits: *mut std::ffi::c_void = std::ptr::null_mut();
-        let mask_bmp = CreateDIBSection(Some(hdc), &bmi, DIB_RGB_COLORS, &mut bits, None, 0)
-            .unwrap_or_default();
-        SelectObject(mask_dc, mask_bmp.into());
-
-        // 全黑像素已由 CreateDIBSection 初始化为 0
-
-        // AlphaBlend 实现半透明叠加
+        // 使用缓存的全黑 mask_dc，通过 AlphaBlend 从 (0,0) 区域取 rw*rh 像素混合
         let bf = BLENDFUNCTION {
             BlendOp: AC_SRC_OVER as u8,
             BlendFlags: 0,
@@ -525,9 +535,6 @@ mod win32_impl {
             AlphaFormat: 0,
         };
         let _ = GdiAlphaBlend(hdc, x1, y1, rw, rh, mask_dc, 0, 0, rw, rh, bf);
-
-        let _ = DeleteDC(mask_dc);
-        let _ = DeleteObject(mask_bmp.into());
     }
 
     /// 在选区上方绘制尺寸标签 "宽 x 高"
