@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:14200",
-    "beforeBuildCommand": "cargo build -p cc-panes-hook --release && node scripts/copy-hook.js && npm run build",
+    "beforeBuildCommand": "cargo build -p cc-panes-hook --release && node scripts/copy-hook.cjs && npm run build",
     "frontendDist": "../dist"
   },
   "app": {
