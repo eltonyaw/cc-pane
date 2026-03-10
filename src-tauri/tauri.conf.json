@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:14200",
-    "beforeBuildCommand": "cargo build -p cc-panes-hook --release && node -e \"const fs=require('fs'),p=require('path');const d=p.join('src-tauri','binaries');fs.mkdirSync(d,{recursive:true});fs.copyFileSync(p.join('target','release','cc-panes-hook.exe'),p.join(d,'cc-panes-hook.exe'))\" && npm run build",
+    "beforeBuildCommand": "cargo build -p cc-panes-hook --release && node scripts/copy-hook.js && npm run build",
     "frontendDist": "../dist"
   },
   "app": {
