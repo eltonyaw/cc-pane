@@ -352,6 +352,7 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_process::init())
         .manage(app_paths)
         .manage(project_service)
         .manage(terminal_service)
@@ -371,6 +372,10 @@ pub fn run() {
         .manage(filesystem_service)
         .manage(orchestrator_service.clone())
         .setup(|app| {
+            // ---- 注册 updater 插件（需在 setup 中注册以访问 app handle）----
+            #[cfg(desktop)]
+            app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
+
             // ---- 启动 workspace 目录监控 ----
             let ws_svc = app.state::<Arc<WorkspaceService>>();
             ws_svc.start_watcher(app.handle().clone());

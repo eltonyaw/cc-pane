@@ -1,6 +1,6 @@
 [package]
 name = "cc-panes"
-version = "0.3.0"
+version = "0.9.5"
 description = "CC-Panes - Multi-instance split-pane manager for Claude Code"
 authors = ["wuxiran"]
 license = "GPL-3.0"
@@ -54,6 +54,8 @@ base64 = "0.22"
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-log = { version = "2", features = ["tracing"] }
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 tracing = "0.1"
 log = "0.4"
 

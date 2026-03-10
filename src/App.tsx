@@ -37,7 +37,7 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useTodoReminders } from "@/hooks/useTodoReminders";
 import { useWorkspaceWatcher } from "@/hooks/useWorkspaceWatcher";
 import { useOrchestratorListener } from "@/hooks/useOrchestratorListener";
-import { historyService, terminalService, localHistoryService, hooksService } from "@/services";
+import { historyService, terminalService, localHistoryService, hooksService, checkForAppUpdates } from "@/services";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { invoke } from "@tauri-apps/api/core";
 import { isTauriReady, waitForTauri } from "@/utils";
@@ -139,6 +139,8 @@ function MainApp() {
         i18n.changeLanguage(lang);
       }
       useTerminalStatusStore.getState().init();
+      // 应用启动后静默检查更新（不弹无更新提示）
+      checkForAppUpdates(false).catch(console.error);
     });
     return () => {
       cancelled = true;
