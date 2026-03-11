@@ -239,53 +239,60 @@ export default memo(function Panel({ pane }: PanelProps) {
     }
   }, []);
 
+  // Notch 浮动布局：标签栏高度计算
+  const TAB_BAR_HEIGHT = { normal: 38, compact: 30, dense: 26 } as const;
+  const density = pane.tabs.length <= 3 ? 'normal' : pane.tabs.length <= 6 ? 'compact' : 'dense';
+  const tabBarHeight = TAB_BAR_HEIGHT[density];
+
   return (
     <div
       className={`flex flex-col h-full overflow-hidden transition-shadow duration-300 ${
-        isFullscreenPanel ? "fixed inset-0 z-[9999] rounded-none" : "rounded-xl"
+        isFullscreenPanel ? "fixed inset-0 z-[9999]" : ""
       }`}
       style={{
         background: "var(--app-panel-bg)",
         backdropFilter: `blur(var(--app-glass-blur))`,
         WebkitBackdropFilter: `blur(var(--app-glass-blur))`,
-        boxShadow: `0 0 0 1px var(--app-border), var(--app-glass-shadow)`,
       }}
       onClick={handlePanelClick}
     >
-      {/* 标签栏 */}
-      <TabBar
-        tabs={pane.tabs}
-        activeId={pane.activeTabId}
-        onSelect={handleSelectTab}
-        onClose={handleCloseTab}
-        onTogglePin={handleTogglePin}
-        onReorder={handleReorder}
-        onRename={handleRename}
-        onAdd={handleAddTab}
-        onSplitRight={handleSplitRight}
-        onSplitDown={handleSplitDown}
-        onFullscreen={handleFullscreen}
-        onSplitAndMoveRight={handleSplitAndMoveRight}
-        onSplitAndMoveDown={handleSplitAndMoveDown}
-        onCloseTabsToLeft={handleCloseTabsToLeft}
-        onCloseTabsToRight={handleCloseTabsToRight}
-        onCloseOtherTabs={handleCloseOtherTabs}
-        onRevealInExplorer={handleRevealInExplorer}
-      />
-
-      {/* 内容区 */}
+      {/* 内容区 + 浮动标签栏 (Notch 布局) */}
       <div
         className="flex-1 relative overflow-hidden"
-        style={{
-          background: "var(--app-panel-bg)",
-          borderRadius: isFullscreenPanel ? "0" : "0 0 12px 12px",
-        }}
+        style={{ '--notch-bar-height': `${tabBarHeight}px` } as React.CSSProperties}
       >
+        {/* 浮动标签栏 */}
+        <div className="absolute top-0 left-0 right-0 z-10">
+          <TabBar
+            tabs={pane.tabs}
+            activeId={pane.activeTabId}
+            onSelect={handleSelectTab}
+            onClose={handleCloseTab}
+            onTogglePin={handleTogglePin}
+            onReorder={handleReorder}
+            onRename={handleRename}
+            onAdd={handleAddTab}
+            onSplitRight={handleSplitRight}
+            onSplitDown={handleSplitDown}
+            onFullscreen={handleFullscreen}
+            onSplitAndMoveRight={handleSplitAndMoveRight}
+            onSplitAndMoveDown={handleSplitAndMoveDown}
+            onCloseTabsToLeft={handleCloseTabsToLeft}
+            onCloseTabsToRight={handleCloseTabsToRight}
+            onCloseOtherTabs={handleCloseOtherTabs}
+            onRevealInExplorer={handleRevealInExplorer}
+          />
+        </div>
+
+        {/* Tab 内容（paddingTop 给标签栏留空间） */}
         {pane.tabs.map((tab) => (
           <div
             key={tab.id}
             className="absolute inset-0"
-            style={{ display: tab.id === pane.activeTabId ? "block" : "none" }}
+            style={{
+              display: tab.id === pane.activeTabId ? "flex" : "none",
+              flexDirection: "column",
+            }}
           >
             <TabContentRenderer
               tab={tab}
@@ -297,17 +304,17 @@ export default memo(function Panel({ pane }: PanelProps) {
           </div>
         ))}
 
-        {/* 空状态 */}
+        {/* 空状态 — 深色背景与终端一致，确保毛玻璃标签可见 */}
         {(!activeTab || !activeTab.projectPath) && (
           <div
             className="absolute inset-0 flex flex-col items-center justify-center select-none overflow-hidden"
-            style={{ background: "var(--app-panel-bg)" }}
+            style={{ background: "#1a1a1a", paddingTop: tabBarHeight }}
           >
             {/* 点阵背景 */}
             <div
               className="absolute inset-0 opacity-[0.03]"
               style={{
-                backgroundImage: 'radial-gradient(var(--app-text-primary) 1px, transparent 1px)',
+                backgroundImage: 'radial-gradient(rgba(255,255,255,0.8) 1px, transparent 1px)',
                 backgroundSize: '24px 24px',
               }}
             />
@@ -316,17 +323,17 @@ export default memo(function Panel({ pane }: PanelProps) {
             <div
               className="relative w-28 h-28 rounded-3xl flex items-center justify-center mb-8 transition-transform duration-700"
               style={{
-                background: "var(--app-hover)",
-                border: "1px solid var(--app-border)",
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.1)",
               }}
             >
-              <Terminal className="w-12 h-12 opacity-80" style={{ color: "var(--app-text-tertiary)" }} />
+              <Terminal className="w-12 h-12 opacity-80" style={{ color: "rgba(255,255,255,0.3)" }} />
             </div>
 
-            <h3 className="text-xl font-medium mb-3 tracking-tight" style={{ color: "var(--app-text-primary)" }}>
+            <h3 className="text-xl font-medium mb-3 tracking-tight" style={{ color: "rgba(255,255,255,0.85)" }}>
               {t("ready")}
             </h3>
-            <p className="text-center max-w-sm leading-relaxed text-sm" style={{ color: "var(--app-text-secondary)" }}>
+            <p className="text-center max-w-sm leading-relaxed text-sm" style={{ color: "rgba(255,255,255,0.45)" }}>
               {t("selectProject")}
             </p>
           </div>

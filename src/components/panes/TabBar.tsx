@@ -12,62 +12,34 @@ import { useTerminalStatusStore } from "@/stores";
 import StatusIndicator from "@/components/StatusIndicator";
 import type { Tab } from "@/types";
 
-/** SVG Skirt — 活跃标签左侧圆弧过渡 */
-function TabSkirtLeft({ size }: { size: number }) {
-  return (
-    <svg
-      className="absolute bottom-0"
-      style={{ width: size, height: size, left: -size, color: 'var(--editor-tab-active-bg)' }}
-      viewBox="0 0 10 10"
-      fill="currentColor"
-    >
-      <path d="M 0 10 A 10 10 0 0 0 10 0 L 10 10 Z" />
-    </svg>
-  );
-}
-
-/** SVG Skirt — 活跃标签右侧圆弧过渡 */
-function TabSkirtRight({ size }: { size: number }) {
-  return (
-    <svg
-      className="absolute bottom-0"
-      style={{ width: size, height: size, right: -size, color: 'var(--editor-tab-active-bg)' }}
-      viewBox="0 0 10 10"
-      fill="currentColor"
-    >
-      <path d="M 10 10 A 10 10 0 0 1 0 0 L 0 10 Z" />
-    </svg>
-  );
-}
-
-/** Chrome 风格密度配置 */
+/** Notch 风格密度配置 */
 const DENSITY = {
   normal: {
-    barHeight: 'h-[42px]', barPadding: 'px-2 pt-2',
+    barPadding: 'px-2 pt-1',
     tabHeight: 'h-[34px]', tabPadding: 'px-3',
-    tabRadius: 'rounded-t-[10px]', tabMaxW: 'max-w-[200px]',
-    inactiveRadius: 'rounded-[8px]', inactiveMargin: 'mx-0.5 mb-[4px]',
-    skirtSize: 10, fontSize: 'text-[13px]', titleMaxW: 'max-w-[120px]',
+    tabRadius: 'rounded-t-[8px]', tabMaxW: 'max-w-[200px]',
+    inactiveRadius: 'rounded-t-[6px]', inactiveMargin: 'mx-0.5',
+    fontSize: 'text-[13px]', titleMaxW: 'max-w-[120px]',
     closeBtnSize: 'w-[22px] h-[22px]', closeIconSize: 13,
     separatorH: 'h-5',
     statusSize: 6, pinSize: 12, addBtn: 'p-2', addIcon: 'w-4 h-4',
   },
   compact: {
-    barHeight: 'h-[36px]', barPadding: 'px-1.5 pt-1.5',
+    barPadding: 'px-1.5 pt-0.5',
     tabHeight: 'h-[28px]', tabPadding: 'px-2.5',
-    tabRadius: 'rounded-t-[8px]', tabMaxW: 'max-w-[200px]',
-    inactiveRadius: 'rounded-[6px]', inactiveMargin: 'mx-0.5 mb-[3px]',
-    skirtSize: 8, fontSize: 'text-[12px]', titleMaxW: 'max-w-[100px]',
+    tabRadius: 'rounded-t-[6px]', tabMaxW: 'max-w-[200px]',
+    inactiveRadius: 'rounded-t-[5px]', inactiveMargin: 'mx-0.5',
+    fontSize: 'text-[12px]', titleMaxW: 'max-w-[100px]',
     closeBtnSize: 'w-[18px] h-[18px]', closeIconSize: 11,
     separatorH: 'h-4',
     statusSize: 5, pinSize: 10, addBtn: 'p-1.5', addIcon: 'w-3.5 h-3.5',
   },
   dense: {
-    barHeight: 'h-[30px]', barPadding: 'px-1 pt-1',
+    barPadding: 'px-1 pt-0.5',
     tabHeight: 'h-[24px]', tabPadding: 'px-2',
     tabRadius: 'rounded-t-[6px]', tabMaxW: 'max-w-[160px]',
-    inactiveRadius: 'rounded-[5px]', inactiveMargin: 'mx-0.5 mb-[2px]',
-    skirtSize: 6, fontSize: 'text-[11px]', titleMaxW: 'max-w-[80px]',
+    inactiveRadius: 'rounded-t-[5px]', inactiveMargin: 'mx-0.5',
+    fontSize: 'text-[11px]', titleMaxW: 'max-w-[80px]',
     closeBtnSize: 'w-[16px] h-[16px]', closeIconSize: 10,
     separatorH: 'h-3',
     statusSize: 4, pinSize: 10, addBtn: 'p-1', addIcon: 'w-3 h-3',
@@ -94,6 +66,8 @@ interface TabBarProps {
   onCloseTabsToRight: (tabId: string) => void;
   onCloseOtherTabs: (tabId: string) => void;
   onRevealInExplorer?: (tab: Tab) => void;
+  activeTabBg?: string;
+  activeTabFg?: string;
 }
 
 export default memo(function TabBar({
@@ -114,6 +88,8 @@ export default memo(function TabBar({
   onCloseTabsToRight,
   onCloseOtherTabs,
   onRevealInExplorer,
+  activeTabBg,
+  activeTabFg,
 }: TabBarProps) {
   const { t } = useTranslation("panes");
   const getStatus = useTerminalStatusStore((s) => s.getStatus);
@@ -189,11 +165,11 @@ export default memo(function TabBar({
 
   return (
     <div
-      className={`flex items-end ${d.barHeight} ${d.barPadding} shrink-0 overflow-x-auto no-scrollbar transition-colors`}
-      style={{ background: "var(--app-tabbar)" }}
+      className={`flex items-start ${d.barPadding} overflow-x-auto no-scrollbar transition-colors`}
+      style={{ background: "transparent" }}
     >
       <div
-        className="flex items-end h-full flex-1"
+        className="flex items-start flex-1"
       >
         {tabs.map((tab, index) => {
           const active = tab.id === activeId;
@@ -232,23 +208,20 @@ export default memo(function TabBar({
                       ${dropIndex === index && dragIndex !== index ? 'bg-[var(--app-active-bg)]' : ''}
                       ${active
                         ? `${d.tabRadius} z-20`
-                        : `${d.inactiveRadius} ${d.inactiveMargin} hover:bg-[var(--app-hover)]`
+                        : `${d.inactiveRadius} ${d.inactiveMargin} hover:bg-[var(--notch-tab-hover-bg)] hover:text-[var(--notch-tab-hover-fg)]`
                       }`}
-                    style={{
-                      background: active ? 'var(--editor-tab-active-bg)' : undefined,
-                      color: active ? 'var(--editor-tab-active-fg)' : 'var(--editor-tab-inactive-fg)',
+                    style={active ? {
+                      background: activeTabBg ?? 'var(--notch-tab-active-bg)',
+                      color: activeTabFg ?? 'var(--notch-tab-active-fg)',
+                      borderLeft: '1px solid var(--notch-tab-border)',
+                      borderRight: '1px solid var(--notch-tab-border)',
+                      borderTop: '1px solid var(--notch-tab-border)',
+                    } : {
+                      color: 'var(--notch-tab-inactive-fg)',
                     }}
                     onClick={() => onSelect(tab.id)}
                     onDoubleClick={() => onFullscreen(tab.id)}
                   >
-                    {/* SVG skirts — 仅活跃标签 */}
-                    {active && (
-                      <>
-                        <TabSkirtLeft size={d.skirtSize} />
-                        <TabSkirtRight size={d.skirtSize} />
-                      </>
-                    )}
-
                     <StatusIndicator status={getStatus(tab.sessionId)} size={d.statusSize} />
                     {tab.pinned && (
                       <Pin size={d.pinSize} className="shrink-0 opacity-60 rotate-45" style={{ color: "var(--app-accent)" }} onDoubleClick={(e) => e.stopPropagation()} />
@@ -370,7 +343,7 @@ export default memo(function TabBar({
           );
         })}
         <button
-          className={`${d.addBtn} mb-1 rounded-lg transition-colors text-[var(--app-icon-inactive)] hover:bg-[var(--app-hover)] hover:text-[var(--app-icon-active)]`}
+          className={`${d.addBtn} rounded-lg transition-colors text-[var(--app-icon-inactive)] hover:bg-[var(--app-hover)] hover:text-[var(--app-icon-active)]`}
           onClick={onAdd}
         >
           <Plus className={d.addIcon} />

@@ -172,22 +172,6 @@ const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
 
         // 拦截已注册的应用快捷键（Ctrl+T/Ctrl+W 等），防止终端吞掉
         term.attachCustomKeyEventHandler((e: KeyboardEvent) => {
-          // Ctrl+V / Ctrl+Shift+V: 显式处理粘贴
-          // 防止 xterm.js 在 TUI 模式下将 Ctrl+V 作为 ^V (0x16) 发送到 PTY
-          if (
-            e.type === 'keydown' &&
-            (e.ctrlKey || e.metaKey) &&
-            !e.altKey &&
-            (e.key === 'v' || e.key === 'V')
-          ) {
-            navigator.clipboard
-              .readText()
-              .then((text) => {
-                if (text) term.paste(text);
-              })
-              .catch(() => {});
-            return false;
-          }
           return shouldTerminalHandleKey(e);
         });
 
@@ -356,7 +340,10 @@ const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
     }, [props.isActive]);
 
     return (
-      <div className="h-full w-full bg-[#1a1a1a] overflow-hidden flex flex-col">
+      <div
+        className="h-full w-full bg-[#1a1a1a] overflow-hidden flex flex-col"
+        style={{ paddingTop: 'var(--notch-bar-height, 0px)' }}
+      >
         <div ref={terminalRef} className="flex-1 overflow-hidden [&_.xterm]:h-full [&_.xterm]:p-1" />
       </div>
     );

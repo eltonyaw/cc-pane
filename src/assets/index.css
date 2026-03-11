@@ -145,6 +145,14 @@
   --app-close-btn-hover-bg: #CF222E;
   --app-close-btn-hover-fg: #FFFFFF;
   --app-tab-active-border: #0969DA;
+
+  /* Notch Tab 变量 — 始终浮在深色终端上，统一毛玻璃风格 */
+  --notch-tab-active-bg: rgba(255, 255, 255, 0.12);
+  --notch-tab-active-fg: #f5f5f7;
+  --notch-tab-inactive-fg: rgba(255, 255, 255, 0.5);
+  --notch-tab-hover-bg: rgba(255, 255, 255, 0.08);
+  --notch-tab-hover-fg: #C9D1D9;
+  --notch-tab-border: rgba(255, 255, 255, 0.15);
 }
 
 /* ===== Dark 主题 — GitHub Dark 补色 ===== */
@@ -242,13 +250,21 @@
   /* 新增：组件级变量 */
   --app-activity-bar-bg: rgba(15, 23, 42, 0.30);
   --app-sidebar-bg: rgba(22, 27, 34, 0.40);
-  --app-panel-bg: #0D1117;
+  --app-panel-bg: #1a1a1a;
   --app-icon-active: #E6EDF3;
   --app-icon-inactive: #6E7681;
   --app-icon-hover: #8B949E;
   --app-close-btn-hover-bg: #F85149;
   --app-close-btn-hover-fg: #FFFFFF;
   --app-tab-active-border: #2F81F7;
+
+  /* Notch Tab 变量 — 始终浮在深色终端上，统一毛玻璃风格 */
+  --notch-tab-active-bg: rgba(255, 255, 255, 0.12);
+  --notch-tab-active-fg: #f5f5f7;
+  --notch-tab-inactive-fg: rgba(255, 255, 255, 0.5);
+  --notch-tab-hover-bg: rgba(255, 255, 255, 0.08);
+  --notch-tab-hover-fg: #C9D1D9;
+  --notch-tab-border: rgba(255, 255, 255, 0.15);
 }
 
 @layer base {
@@ -307,7 +323,7 @@
 /* SplitView 分隔条样式 */
 .splitview-sash {
   flex-shrink: 0;
-  background: var(--app-glass-border);
+  background: var(--app-text-tertiary);
   transition: background 0.15s;
 }
 
@@ -316,28 +332,36 @@
   box-shadow: 0 0 8px color-mix(in srgb, var(--app-accent) 40%, transparent);
 }
 
-.splitview-sash.vertical {
-  width: 1px;
-  min-width: 1px;
-  cursor: col-resize;
+/* 伪元素扩展拖拽热区 */
+.splitview-sash::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
 }
 
-.splitview-sash.vertical:hover {
-  width: 3px;
-  min-width: 3px;
-  margin: 0 -1px;
+.splitview-sash.vertical {
+  width: 4px;
+  min-width: 4px;
+  cursor: col-resize;
+  position: relative;
+}
+
+.splitview-sash.vertical::before {
+  left: -4px;
+  right: -4px;
 }
 
 .splitview-sash.horizontal {
-  height: 1px;
-  min-height: 1px;
+  height: 4px;
+  min-height: 4px;
   cursor: row-resize;
+  position: relative;
 }
 
-.splitview-sash.horizontal:hover {
-  height: 3px;
-  min-height: 3px;
-  margin: -1px 0;
+.splitview-sash.horizontal::before {
+  top: -4px;
+  bottom: -4px;
 }
 
 /* Activity Bar 样式 */
@@ -350,25 +374,9 @@
   border-left: none;
 }
 
-/* 侧边栏 sash：更明显的分割线 */
-
-/* 侧边栏与主面板之间的垂直分割线 */
-.sidebar > .splitview-sash.vertical {
-  width: 2px;
-  min-width: 2px;
-}
-
-.sidebar > .splitview-sash.vertical:hover {
-  width: 4px;
-  min-width: 4px;
-  margin: 0 -1px;
-}
-
 /* 侧边栏内部区域之间的水平分割线 */
 .sidebar .splitview-sash.horizontal {
-  height: 2px;
-  min-height: 2px;
-  margin: 2px 12px;
+  margin: 0 12px;
   border-radius: 1px;
 }
 
