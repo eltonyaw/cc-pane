@@ -9,9 +9,17 @@
 
 [中文文档](README.zh-CN.md)
 
+<!--
 <p align="center">
   <img src="images/screenshot-main.png" alt="CC-Panes Main Interface" width="800" />
 </p>
+-->
+
+## Download
+
+Pre-built Windows installer is available on the [GitHub Releases](https://github.com/wuxiran/cc-pane/releases) page. Download the latest `.exe` installer and run it to get started.
+
+> For other platforms, you can [build from source](#getting-started).
 
 ## What is CC-Panes?
 
@@ -94,8 +102,8 @@ CC-Panes lets you run **multiple Claude Code CLI instances** side by side in a s
 
 ```bash
 # Clone the repository
-git clone https://github.com/wuxiran/cc-panes.git
-cd cc-panes
+git clone https://github.com/wuxiran/cc-pane.git
+cd cc-pane
 
 # Install frontend dependencies
 npm install
@@ -176,6 +184,7 @@ cc-panes/
 └── images/                 # Screenshots
 ```
 
+<!--
 ## Screenshots
 
 <details>
@@ -190,6 +199,7 @@ cc-panes/
 | ![Todo](images/screenshot-todolist.png) | ![New UI](images/screenshot-new-ui.png) |
 
 </details>
+-->
 
 ## Contributing
 
