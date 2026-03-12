@@ -9,6 +9,7 @@ mod settings_service;
 mod provider_service;
 mod notification_service;
 mod launch_history_service;
+pub mod claude_session_service;
 mod todo_service;
 pub mod mcp_config_service;
 pub mod skill_service;

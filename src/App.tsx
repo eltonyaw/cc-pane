@@ -7,6 +7,7 @@ import ActivityBar from "@/components/ActivityBar";
 import StatusBar from "@/components/StatusBar";
 import MiniView from "@/components/MiniView";
 import { PaneContainer } from "@/components/panes";
+import DndPaneProvider from "@/components/panes/DndPaneProvider";
 import { FileEditorPanel } from "@/components/editor";
 import SettingsPanel from "@/components/SettingsPanel";
 import JournalPanel from "@/components/JournalPanel";
@@ -37,7 +38,7 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useTodoReminders } from "@/hooks/useTodoReminders";
 import { useWorkspaceWatcher } from "@/hooks/useWorkspaceWatcher";
 import { useOrchestratorListener } from "@/hooks/useOrchestratorListener";
-import { historyService, terminalService, localHistoryService, hooksService, checkForAppUpdates } from "@/services";
+import { historyService, terminalService, localHistoryService, hooksService, checkUpdateSilent } from "@/services";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { invoke } from "@tauri-apps/api/core";
 import { isTauriReady, waitForTauri } from "@/utils";
@@ -139,8 +140,8 @@ function MainApp() {
         i18n.changeLanguage(lang);
       }
       useTerminalStatusStore.getState().init();
-      // 应用启动后静默检查更新（不弹无更新提示）
-      checkForAppUpdates(false).catch(console.error);
+      // 应用启动后静默检查更新（仅写入 store，不弹窗）
+      checkUpdateSilent().catch(console.error);
     });
     return () => {
       cancelled = true;
@@ -512,7 +513,9 @@ function MainApp() {
                   )}
                   {/* 面板区域 */}
                   <div className="flex-1 overflow-hidden bg-transparent p-1.5">
-                    <PaneContainer pane={rootPane} />
+                    <DndPaneProvider>
+                      <PaneContainer pane={rootPane} />
+                    </DndPaneProvider>
                   </div>
                 </>
               )}

@@ -170,8 +170,29 @@ const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
           textarea.addEventListener('blur', () => setFocused(false));
         }
 
-        // 拦截已注册的应用快捷键（Ctrl+T/Ctrl+W 等），防止终端吞掉
+        // 拦截快捷键：Ctrl+C 复制 / Ctrl+V 粘贴 / 应用快捷键放行
         term.attachCustomKeyEventHandler((e: KeyboardEvent) => {
+          if (e.type === 'keydown' && (e.ctrlKey || e.metaKey) && !e.altKey) {
+            // Ctrl+C: 有选区时复制到剪贴板，无选区时放行给终端（发送 SIGINT）
+            if (!e.shiftKey && (e.key === 'c' || e.key === 'C')) {
+              const selection = term.getSelection();
+              if (selection) {
+                e.preventDefault();
+                navigator.clipboard.writeText(selection).catch(() => {});
+                term.clearSelection();
+                return false;
+              }
+              return true;
+            }
+            // Ctrl+V: 显式读取剪贴板粘贴，e.preventDefault() 防止浏览器 paste 事件导致粘贴两次
+            if (e.key === 'v' || e.key === 'V') {
+              e.preventDefault();
+              navigator.clipboard.readText()
+                .then((text) => { if (text) term.paste(text); })
+                .catch(() => {});
+              return false;
+            }
+          }
           return shouldTerminalHandleKey(e);
         });
 

@@ -28,3 +28,4 @@ export { useActivityBarStore, type ActivityView } from "./useActivityBarStore";
 export { useSelfChatStore } from "./useSelfChatStore";
 export { useFileBrowserStore } from "./useFileBrowserStore";
 export { useEditorTabsStore, type EditorTab } from "./useEditorTabsStore";
+export { useUpdateStore } from "./useUpdateStore";

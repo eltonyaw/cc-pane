@@ -23,7 +23,6 @@ export default memo(function Panel({ pane }: PanelProps) {
   const selectTab = usePanesStore((s) => s.selectTab);
   const closeTab = usePanesStore((s) => s.closeTab);
   const togglePinTab = usePanesStore((s) => s.togglePinTab);
-  const reorderTabs = usePanesStore((s) => s.reorderTabs);
   const renameTab = usePanesStore((s) => s.renameTab);
   const addTab = usePanesStore((s) => s.addTab);
   const splitRight = usePanesStore((s) => s.splitRight);
@@ -171,11 +170,6 @@ export default memo(function Panel({ pane }: PanelProps) {
     [pane.id, togglePinTab]
   );
 
-  const handleReorder = useCallback(
-    (fromIndex: number, toIndex: number) => reorderTabs(pane.id, fromIndex, toIndex),
-    [pane.id, reorderTabs]
-  );
-
   const handleRename = useCallback(
     (tabId: string, newTitle: string) => renameTab(pane.id, tabId, newTitle),
     [pane.id, renameTab]
@@ -264,12 +258,12 @@ export default memo(function Panel({ pane }: PanelProps) {
         {/* 浮动标签栏 */}
         <div className="absolute top-0 left-0 right-0 z-10">
           <TabBar
+            paneId={pane.id}
             tabs={pane.tabs}
             activeId={pane.activeTabId}
             onSelect={handleSelectTab}
             onClose={handleCloseTab}
             onTogglePin={handleTogglePin}
-            onReorder={handleReorder}
             onRename={handleRename}
             onAdd={handleAddTab}
             onSplitRight={handleSplitRight}

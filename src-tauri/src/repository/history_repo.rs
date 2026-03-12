@@ -80,6 +80,47 @@ impl HistoryRepository {
         Ok(records)
     }
 
+    /// 按项目路径获取启动记录（SQL 层过滤，路径大小写不敏感 + 正反斜杠统一比较）
+    pub fn list_by_project(&self, project_path: &str, limit: usize) -> Result<Vec<LaunchRecord>, String> {
+        let conn = self.db.connection().map_err(|e| e.to_string())?;
+        // 在 SQL 中用 REPLACE + LOWER 做路径规范化比较
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, project_id, project_name, project_path, launched_at, claude_session_id, last_prompt, workspace_name, workspace_path, launch_cwd \
+                 FROM launch_history \
+                 WHERE LOWER(REPLACE(project_path, '\\', '/')) = LOWER(REPLACE(?1, '\\', '/')) \
+                 ORDER BY launched_at DESC LIMIT ?2"
+            )
+            .map_err(|e| {
+                error!(table = "launch_history", err = %e, "SQL prepare (list_by_project) failed");
+                e.to_string()
+            })?;
+
+        let records = stmt
+            .query_map(rusqlite::params![project_path, limit], |row| {
+                Ok(LaunchRecord {
+                    id: row.get(0)?,
+                    project_id: row.get(1)?,
+                    project_name: row.get(2)?,
+                    project_path: row.get(3)?,
+                    launched_at: row.get(4)?,
+                    claude_session_id: row.get(5)?,
+                    last_prompt: row.get(6)?,
+                    workspace_name: row.get(7)?,
+                    workspace_path: row.get(8)?,
+                    launch_cwd: row.get(9)?,
+                })
+            })
+            .map_err(|e| {
+                error!(table = "launch_history", err = %e, "SQL query_map (list_by_project) failed");
+                e.to_string()
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+
+        Ok(records)
+    }
+
     /// 更新启动记录的 Claude Session ID
     pub fn update_session_id(&self, id: i64, claude_session_id: &str) -> Result<(), String> {
         let conn = self.db.connection().map_err(|e| e.to_string())?;

@@ -1,4 +1,5 @@
-import { Pin, Minimize2, Sun, Moon, Terminal } from "lucide-react";
+import { useState } from "react";
+import { Pin, Minimize2, Sun, Moon, Terminal, ArrowUpCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   Tooltip,
@@ -12,7 +13,9 @@ import {
   useWorkspacesStore,
   useSettingsStore,
   useTerminalStatusStore,
+  useUpdateStore,
 } from "@/stores";
+import { triggerUpdate } from "@/services";
 import { useWindowControl } from "@/hooks/useWindowControl";
 
 export default function StatusBar() {
@@ -22,11 +25,23 @@ export default function StatusBar() {
   const enterMiniMode = useMiniModeStore((s) => s.enterMiniMode);
   const selectedWorkspace = useWorkspacesStore((s) => s.selectedWorkspace);
   const statusMap = useTerminalStatusStore((s) => s.statusMap);
+  const updateAvailable = useUpdateStore((s) => s.available);
+  const updateVersion = useUpdateStore((s) => s.version);
+  const [updating, setUpdating] = useState(false);
   const { isPinned, togglePin } = useWindowControl();
 
   const activeWorkspace = selectedWorkspace();
   let activeCount = 0;
   statusMap.forEach((info) => { if (info.status === "active") activeCount++; });
+
+  const handleUpdate = async () => {
+    setUpdating(true);
+    try {
+      await triggerUpdate();
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   function handleToggleLanguage() {
     const nextLang = i18n.language === "zh-CN" ? "en" : "zh-CN";
@@ -64,6 +79,26 @@ export default function StatusBar() {
             <Terminal className="w-3 h-3" />
             <span>{activeCount}</span>
           </span>
+        )}
+
+        {/* 版本更新提示 */}
+        {updateAvailable && updateVersion && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                className="flex items-center gap-1 px-1.5 py-0.5 rounded transition-colors hover:bg-[var(--app-hover)]"
+                style={{ color: "var(--app-accent)" }}
+                disabled={updating}
+                onClick={handleUpdate}
+              >
+                <ArrowUpCircle className={`w-3 h-3 ${updating ? "animate-spin" : ""}`} />
+                <span className="text-[10px] font-medium">v{updateVersion}</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p>{t("updateAvailable", { ns: "settings", defaultValue: "New version available, click to update" })}</p>
+            </TooltipContent>
+          </Tooltip>
         )}
       </div>
 

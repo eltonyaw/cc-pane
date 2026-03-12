@@ -7,6 +7,7 @@
  * - orchestrator-open-file: 编辑器打开文件标签
  * - orchestrator-close-file: 关闭编辑器标签
  * - orchestrator-query-open-files: 查询已打开文件并响应
+ * - orchestrator-query-panes: 查询当前面板布局并响应
  */
 import { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
@@ -28,6 +29,7 @@ interface OrchestratorLaunchPayload {
   providerId?: string;
   workspacePath?: string;
   title?: string;
+  paneId?: string;
 }
 
 export function useOrchestratorListener() {
@@ -49,6 +51,7 @@ export function useOrchestratorListener() {
             providerId,
             workspacePath,
             title,
+            paneId: targetPaneId,
           } = event.payload;
 
           console.info(
@@ -63,7 +66,17 @@ export function useOrchestratorListener() {
 
           const panesStore = usePanesStore.getState();
           const activePane = panesStore.activePane();
-          const paneId = activePane?.id ?? panesStore.rootPane.id;
+
+          // 如果指定了 paneId 且有效，使用它；否则 fallback 到 activePane
+          let paneId: string;
+          if (targetPaneId) {
+            const targetPane = panesStore.findPaneById(targetPaneId);
+            paneId = targetPane?.type === "panel"
+              ? targetPane.id
+              : (activePane?.id ?? panesStore.rootPane.id);
+          } else {
+            paneId = activePane?.id ?? panesStore.rootPane.id;
+          }
 
           panesStore.addTab(
             paneId,
@@ -164,6 +177,41 @@ export function useOrchestratorListener() {
             data,
           }).catch((e: unknown) =>
             console.error("[Orchestrator] respond query failed:", e)
+          );
+        }
+      )
+      .then((fn) => unlisteners.push(fn));
+
+    // 6. query-panes 事件
+    getCurrentWebview()
+      .listen<{ requestId: string }>(
+        "orchestrator-query-panes",
+        async (event) => {
+          console.info(
+            "[Orchestrator] Received query-panes event:",
+            event.payload
+          );
+          const panesStore = usePanesStore.getState();
+          const panels = panesStore.allPanels();
+          const activePaneId = panesStore.activePaneId;
+          const panes = panels.map((p) => ({
+            paneId: p.id,
+            tabCount: p.tabs.length,
+            isActive: p.id === activePaneId,
+            tabs: p.tabs.map((t) => ({
+              id: t.id,
+              title: t.title,
+              contentType: t.contentType,
+              projectPath: t.projectPath,
+              sessionId: t.sessionId,
+            })),
+          }));
+          const data = JSON.stringify({ panes, total: panes.length });
+          await invoke("respond_orchestrator_query", {
+            requestId: event.payload.requestId,
+            data,
+          }).catch((e: unknown) =>
+            console.error("[Orchestrator] respond query-panes failed:", e)
           );
         }
       )

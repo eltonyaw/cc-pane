@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { getVersion } from "@tauri-apps/api/app";
-import { checkForAppUpdates } from "@/services/updaterService";
+import { useUpdateStore } from "@/stores";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 
@@ -9,6 +9,8 @@ export default function AboutSection() {
   const { t } = useTranslation("settings");
   const [version, setVersion] = useState("...");
   const [checking, setChecking] = useState(false);
+  const updateAvailable = useUpdateStore((s) => s.available);
+  const updateVersion = useUpdateStore((s) => s.version);
 
   useEffect(() => {
     getVersion().then(setVersion);
@@ -17,7 +19,11 @@ export default function AboutSection() {
   const handleCheckUpdate = async () => {
     setChecking(true);
     try {
+      // 动态 import 防止 updater 插件未注册时导致整个组件不渲染
+      const { checkForAppUpdates } = await import("@/services/updaterService");
       await checkForAppUpdates(true);
+    } catch (error) {
+      console.error("[AboutSection] 检查更新失败:", error);
     } finally {
       setChecking(false);
     }
@@ -46,6 +52,20 @@ export default function AboutSection() {
           </div>
         ))}
       </div>
+
+      {/* 更新状态提示 */}
+      {updateAvailable && updateVersion && (
+        <div
+          className="flex items-center gap-2 px-3 py-2 rounded-md text-[12px]"
+          style={{
+            background: "var(--app-active-bg)",
+            color: "var(--app-accent)",
+            border: "1px solid var(--app-accent)",
+          }}
+        >
+          <span>{t("newVersionAvailable", { version: updateVersion })}</span>
+        </div>
+      )}
 
       <Button
         variant="outline"

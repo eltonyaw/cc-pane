@@ -21,6 +21,11 @@ impl LaunchHistoryService {
         self.repo.list(limit)
     }
 
+    /// 按项目路径获取启动记录（SQL 层路径规范化过滤）
+    pub fn list_by_project(&self, project_path: &str, limit: usize) -> Result<Vec<LaunchRecord>, String> {
+        self.repo.list_by_project(project_path, limit)
+    }
+
     /// 更新 Claude Session ID
     pub fn update_session_id(&self, id: i64, claude_session_id: &str) -> Result<(), String> {
         self.repo.update_session_id(id, claude_session_id)

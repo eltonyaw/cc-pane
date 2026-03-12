@@ -9,7 +9,7 @@
 //! - 项目路径白名单校验
 //! - 请求频率限制
 
-use crate::services::{ProjectService, ProviderService, TerminalService, WorkspaceService, TodoService, SkillService};
+use crate::services::{ProjectService, ProviderService, TerminalService, WorkspaceService, TodoService, SkillService, LaunchHistoryService};
 use crate::models::todo::{TodoQuery, CreateTodoRequest, UpdateTodoRequest, TodoStatus, TodoPriority, TodoScope};
 use crate::utils::AppPaths;
 use anyhow::Result;
@@ -41,11 +41,16 @@ use tracing::{debug, error, info, warn};
 #[serde(rename_all = "camelCase")]
 pub struct LaunchTaskRequest {
     pub project_path: String,
-    pub prompt: String,
+    /// 要注入的 prompt（任务描述）。resume 时可不传。
+    pub prompt: Option<String>,
     pub provider_id: Option<String>,
     pub workspace_name: Option<String>,
     pub workspace_path: Option<String>,
     pub title: Option<String>,
+    /// 恢复指定 Claude 会话（传入 session UUID）
+    pub resume_id: Option<String>,
+    /// 指定目标面板 ID（可选，不指定则使用活跃面板。通过 list_panes 获取可用面板）
+    pub pane_id: Option<String>,
 }
 
 /// 启动任务响应
@@ -99,6 +104,8 @@ pub struct OrchestratorLaunchEvent {
     pub provider_id: Option<String>,
     pub workspace_path: Option<String>,
     pub title: Option<String>,
+    pub resume_id: Option<String>,
+    pub pane_id: Option<String>,
 }
 
 /// 文件浏览器导航事件
@@ -149,6 +156,7 @@ pub struct AppState {
     pub workspace_service: Arc<WorkspaceService>,
     pub todo_service: Arc<TodoService>,
     pub skill_service: Arc<SkillService>,
+    pub launch_history_service: Arc<LaunchHistoryService>,
     pub app_handle: AppHandle,
     pub app_paths: Arc<AppPaths>,
     pub tasks: Arc<Mutex<HashMap<String, TaskStatus>>>,
@@ -202,6 +210,7 @@ impl OrchestratorService {
         workspace_service: Arc<WorkspaceService>,
         todo_service: Arc<TodoService>,
         skill_service: Arc<SkillService>,
+        launch_history_service: Arc<LaunchHistoryService>,
         app_handle: AppHandle,
         app_paths: Arc<AppPaths>,
     ) -> Result<()> {
@@ -214,6 +223,7 @@ impl OrchestratorService {
             workspace_service,
             todo_service,
             skill_service,
+            launch_history_service,
             app_handle,
             app_paths,
             tasks: Arc::new(Mutex::new(HashMap::new())),
@@ -389,8 +399,8 @@ struct McpLaunchTaskParams {
     /// 项目路径（必须是已注册的项目）
     #[serde(rename = "projectPath")]
     project_path: String,
-    /// 要注入的 prompt（任务描述）
-    prompt: String,
+    /// 要注入的 prompt（任务描述）。resume 时可不传。
+    prompt: Option<String>,
     /// 可选的 Provider ID
     #[serde(rename = "providerId")]
     provider_id: Option<String>,
@@ -399,6 +409,12 @@ struct McpLaunchTaskParams {
     /// 工作空间名称（自动解析 workspace_path 和 provider）
     #[serde(rename = "workspaceName")]
     workspace_name: Option<String>,
+    /// 恢复指定 Claude 会话（传入 session UUID，可从 list_launch_history 获取 claudeSessionId）
+    #[serde(rename = "resumeId")]
+    resume_id: Option<String>,
+    /// 指定目标面板 ID（可选，不指定则使用活跃面板。通过 list_panes 获取可用面板）
+    #[serde(rename = "paneId")]
+    pane_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
@@ -559,6 +575,26 @@ struct McpKillSessionParams {
     session_id: String,
 }
 
+// ---- Launch History / Claude Sessions MCP 参数 ----
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct McpListLaunchHistoryParams {
+    /// 按项目路径筛选（可选）
+    #[serde(rename = "projectPath")]
+    project_path: Option<String>,
+    /// 返回数量上限（默认 20）
+    limit: Option<usize>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct McpListClaudeSessionsParams {
+    /// 项目路径（可选，不传则返回所有项目的会话）
+    #[serde(rename = "projectPath")]
+    project_path: Option<String>,
+    /// 返回数量上限（默认 20）
+    limit: Option<usize>,
+}
+
 /// MCP 工具处理器
 #[derive(Clone)]
 struct McpToolHandler {
@@ -575,13 +611,26 @@ impl McpToolHandler {
 
 #[tool_router]
 impl McpToolHandler {
-    /// 启动一个新的 Claude Code 实例来执行指定任务。会在 CC-Panes 中创建新标签页并注入 prompt。
+    /// 启动一个新的 Claude Code 实例来执行指定任务，或恢复已有会话。
+    /// 新任务：传 prompt（必需），会在 CC-Panes 中创建新标签页并注入 prompt。
+    /// 恢复会话：传 resumeId（必需），会以 `claude --resume <id>` 启动，不注入 prompt。
     #[tool]
     async fn launch_task(
         &self,
         Parameters(params): Parameters<McpLaunchTaskParams>,
     ) -> String {
-        info!(project = %params.project_path, prompt_len = params.prompt.len(), "mcp::launch_task");
+        let is_resume = params.resume_id.is_some();
+        let prompt_len = params.prompt.as_ref().map(|p| p.len()).unwrap_or(0);
+        info!(project = %params.project_path, prompt_len, is_resume, "mcp::launch_task");
+
+        // 参数校验：prompt 和 resumeId 互斥，必须且只能提供其一
+        if params.prompt.is_some() && params.resume_id.is_some() {
+            return "错误: prompt 和 resumeId 互斥，不能同时提供".to_string();
+        }
+        if params.prompt.is_none() && params.resume_id.is_none() {
+            return "错误: 必须提供 prompt 或 resumeId 其中之一".to_string();
+        }
+
         // 白名单校验（DB 项目 + 工作空间项目）
         if !is_project_registered(&self.state, &params.project_path) {
             return format!("错误: 项目路径 '{}' 未注册", params.project_path);
@@ -611,7 +660,7 @@ impl McpToolHandler {
         let task_id = uuid::Uuid::new_v4().to_string();
         let project_id = format!("orch-{}", uuid::Uuid::new_v4());
 
-        // 创建 PTY 会话
+        // 创建 PTY 会话（resume 时传 resume_id）
         let session_id = match self.state.terminal_service.create_session(
             self.state.app_handle.clone(),
             &params.project_path,
@@ -620,7 +669,7 @@ impl McpToolHandler {
             provider_id.as_deref(),
             ws_path.as_deref(),
             true,
-            None,
+            params.resume_id.as_deref(),
             false,
             None,
         ) {
@@ -654,18 +703,25 @@ impl McpToolHandler {
             provider_id,
             workspace_path: ws_path,
             title: params.title.clone(),
+            resume_id: params.resume_id.clone(),
+            pane_id: params.pane_id.clone(),
         };
         let _ = self.state.app_handle.emit("orchestrator-launch-task", &event);
 
-        // 后台注入 prompt
-        spawn_prompt_injector(
-            self.state.terminal_service.clone(),
-            self.state.tasks.clone(),
-            self.state.app_handle.clone(),
-            session_id.clone(),
-            task_id.clone(),
-            params.prompt,
-        );
+        // resume 时不注入 prompt（Claude --resume 自动恢复上下文）
+        // 新任务时后台注入 prompt
+        if !is_resume {
+            if let Some(prompt) = params.prompt {
+                spawn_prompt_injector(
+                    self.state.terminal_service.clone(),
+                    self.state.tasks.clone(),
+                    self.state.app_handle.clone(),
+                    session_id.clone(),
+                    task_id.clone(),
+                    prompt,
+                );
+            }
+        }
 
         serde_json::json!({
             "taskId": task_id,
@@ -1055,6 +1111,40 @@ impl McpToolHandler {
         }
     }
 
+    /// 查询当前所有面板信息（ID、标签数量、活跃标签等），可用于 launch_task 的 paneId 参数
+    #[tool]
+    async fn list_panes(&self) -> String {
+        debug!("mcp::list_panes");
+        let request_id = uuid::Uuid::new_v4().to_string();
+        let (tx, rx) = tokio::sync::oneshot::channel::<String>();
+
+        // 注册 pending query
+        {
+            let mut queries = self.state.pending_queries.lock().unwrap_or_else(|e| e.into_inner());
+            queries.insert(request_id.clone(), tx);
+        }
+
+        // 发射查询事件给前端
+        let event = OrchestratorQueryEvent {
+            request_id: request_id.clone(),
+        };
+        let _ = self.state.app_handle.emit("orchestrator-query-panes", &event);
+
+        // 等待前端响应（超时 5 秒）
+        match tokio::time::timeout(std::time::Duration::from_secs(5), rx).await {
+            Ok(Ok(data)) => data,
+            Ok(Err(_)) => {
+                "错误: 前端响应通道已关闭".to_string()
+            }
+            Err(_) => {
+                // 超时，清理 pending query
+                let mut queries = self.state.pending_queries.lock().unwrap_or_else(|e| e.into_inner());
+                queries.remove(&request_id);
+                "错误: 查询超时（5秒），前端未响应".to_string()
+            }
+        }
+    }
+
     // ============ PTY Control Tools ============
 
     /// 向指定 PTY 会话写入原始字节（不做时序处理）。适合发送控制字符（如 Ctrl+C: "\x03"）。如果需要向 Claude Code 提交命令或 prompt，请改用 submit_to_session，它会自动处理 Enter 键时序。
@@ -1164,6 +1254,83 @@ impl McpToolHandler {
             }
         }
     }
+
+    // ============ Launch History / Claude Sessions Tools ============
+
+    /// 查询 CC-Panes 启动历史记录。返回 claudeSessionId（可用作 launch_task 的 resumeId）、
+    /// lastPrompt（上次任务描述）、projectPath、launchedAt 等信息。
+    /// 推荐 resume 流程：list_launch_history → 匹配 projectPath + 找到 claudeSessionId → launch_task(resumeId=claudeSessionId)
+    #[tool]
+    async fn list_launch_history(
+        &self,
+        Parameters(params): Parameters<McpListLaunchHistoryParams>,
+    ) -> String {
+        let limit = params.limit.unwrap_or(20).min(100);
+        debug!(limit, project_path = ?params.project_path, "mcp::list_launch_history");
+
+        let result = if let Some(ref project_path) = params.project_path {
+            self.state.launch_history_service.list_by_project(project_path, limit)
+        } else {
+            self.state.launch_history_service.list(limit)
+        };
+
+        match result {
+            Ok(records) => {
+                let items: Vec<serde_json::Value> = records
+                    .into_iter()
+                    .map(|r| {
+                        serde_json::json!({
+                            "id": r.id,
+                            "projectId": r.project_id,
+                            "projectName": r.project_name,
+                            "projectPath": r.project_path,
+                            "launchedAt": r.launched_at,
+                            "claudeSessionId": r.claude_session_id,
+                            "lastPrompt": r.last_prompt,
+                            "workspaceName": r.workspace_name,
+                        })
+                    })
+                    .collect();
+                serde_json::json!({ "records": items, "total": items.len() }).to_string()
+            }
+            Err(e) => format!("错误: 查询启动历史失败: {}", e),
+        }
+    }
+
+    /// 查询 Claude Code 历史会话列表（从 ~/.claude/projects/ 读取）。
+    /// 返回 sessionId（可用作 launch_task 的 resumeId）、description、modifiedAt。
+    #[tool]
+    async fn list_claude_sessions(
+        &self,
+        Parameters(params): Parameters<McpListClaudeSessionsParams>,
+    ) -> String {
+        debug!(project_path = ?params.project_path, "mcp::list_claude_sessions");
+
+        let limit = params.limit.unwrap_or(20).min(100);
+        let result = if let Some(ref project_path) = params.project_path {
+            crate::services::claude_session_service::list_sessions(project_path, limit)
+        } else {
+            crate::services::claude_session_service::list_all_sessions(limit)
+        };
+
+        match result {
+            Ok(sessions) => {
+                let items: Vec<serde_json::Value> = sessions
+                    .into_iter()
+                    .map(|s| {
+                        serde_json::json!({
+                            "sessionId": s.id,
+                            "projectPath": s.project_path,
+                            "modifiedAt": s.modified_at,
+                            "description": s.description,
+                        })
+                    })
+                    .collect();
+                serde_json::json!({ "sessions": items, "total": items.len() }).to_string()
+            }
+            Err(e) => format!("错误: 查询 Claude 会话失败: {}", e),
+        }
+    }
 }
 
 #[tool_handler]
@@ -1178,8 +1345,11 @@ impl ServerHandler for McpToolHandler {
                 "待办: query_todos、create_todo、update_todo\n",
                 "Skill: list_skills（查看项目可用命令模板）\n",
                 "文件: open_folder（导航文件浏览器）、open_file（编辑器打开文件）、close_file（关闭标签）、list_open_files（查询打开的文件）\n",
+                "面板: list_panes（查询当前面板布局和标签信息，返回 paneId 可用于 launch_task）\n",
+                "历史: list_launch_history（查询启动历史，含 claudeSessionId）、list_claude_sessions（查询 Claude 会话列表）\n",
                 "典型编排流程: launch_task → get_session_status（等 WaitingInput）→ write_to_session（注入命令）→ 监控 → kill_session\n",
-                "典型项目流程: scan_directory 发现项目 → create_workspace → add_project_to_workspace → launch_task",
+                "典型项目流程: scan_directory 发现项目 → create_workspace → add_project_to_workspace → launch_task\n",
+                "典型 resume 流程: list_launch_history(projectPath) → 找到 claudeSessionId → launch_task(projectPath, resumeId=claudeSessionId)",
             ))
     }
 }
@@ -1255,7 +1425,10 @@ async fn handle_launch_task(
     State(state): State<AppState>,
     Json(req): Json<LaunchTaskRequest>,
 ) -> impl IntoResponse {
-    info!(project = %req.project_path, prompt_len = req.prompt.len(), "REST::launch_task");
+    let is_resume = req.resume_id.is_some();
+    let prompt_len = req.prompt.as_ref().map(|p| p.len()).unwrap_or(0);
+    info!(project = %req.project_path, prompt_len, is_resume, "REST::launch_task");
+
     if !verify_token(&headers, &state.token) {
         warn!("REST::launch_task unauthorized");
         return (
@@ -1269,6 +1442,20 @@ async fn handle_launch_task(
         return (
             StatusCode::TOO_MANY_REQUESTS,
             Json(serde_json::json!(ApiError { error: "Rate limit exceeded".to_string() })),
+        );
+    }
+
+    // 参数校验：prompt 和 resumeId 互斥，必须且只能提供其一
+    if req.prompt.is_some() && req.resume_id.is_some() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!(ApiError { error: "Cannot provide both 'prompt' and 'resumeId'".to_string() })),
+        );
+    }
+    if req.prompt.is_none() && req.resume_id.is_none() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!(ApiError { error: "Must provide either 'prompt' or 'resumeId'".to_string() })),
         );
     }
 
@@ -1293,7 +1480,7 @@ async fn handle_launch_task(
         req.provider_id.as_deref(),
         req.workspace_path.as_deref(),
         true,
-        None,
+        req.resume_id.as_deref(),
         false,
         None,
     ) {
@@ -1331,17 +1518,24 @@ async fn handle_launch_task(
         provider_id: req.provider_id.clone(),
         workspace_path: req.workspace_path.clone(),
         title: req.title.clone(),
+        resume_id: req.resume_id.clone(),
+        pane_id: req.pane_id.clone(),
     };
     let _ = state.app_handle.emit("orchestrator-launch-task", &event);
 
-    spawn_prompt_injector(
-        state.terminal_service.clone(),
-        state.tasks.clone(),
-        state.app_handle.clone(),
-        session_id.clone(),
-        task_id.clone(),
-        req.prompt,
-    );
+    // resume 时不注入 prompt
+    if !is_resume {
+        if let Some(ref prompt) = req.prompt {
+            spawn_prompt_injector(
+                state.terminal_service.clone(),
+                state.tasks.clone(),
+                state.app_handle.clone(),
+                session_id.clone(),
+                task_id.clone(),
+                prompt.clone(),
+            );
+        }
+    }
 
     let response = LaunchTaskResponse {
         task_id,

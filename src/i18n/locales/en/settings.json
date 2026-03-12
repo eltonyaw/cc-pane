@@ -93,6 +93,8 @@
   "appDescription": "Multi-instance split-pane manager for Claude Code",
   "checkUpdate": "Check for Updates",
   "checking": "Checking...",
+  "updateAvailable": "New version v{{version}} available, click to update",
+  "newVersionAvailable": "New version v{{version}} available",
 
   "mcpTitle": "MCP Server Config",
   "mcpAdd": "Add",

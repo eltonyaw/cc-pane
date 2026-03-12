@@ -9,7 +9,6 @@ import {
   type DragEndEvent,
   type DragOverEvent,
 } from "@dnd-kit/core";
-import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
 import { useState } from "react";
 import { usePanesStore } from "@/stores";
 import type { Tab } from "@/types";
@@ -111,8 +110,3 @@ export default function DndPaneProvider({ children }: DndPaneProviderProps) {
   );
 }
 
-/**
- * Hook: 获取当前面板的 SortableContext 包装
- * 在 TabBar 中使用
- */
-export { SortableContext, horizontalListSortingStrategy };

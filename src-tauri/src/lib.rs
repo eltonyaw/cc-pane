@@ -420,6 +420,7 @@ pub fn run() {
                 let ws_svc_orch = app.state::<Arc<WorkspaceService>>();
                 let todo_svc = app.state::<Arc<TodoService>>();
                 let skill_svc = app.state::<Arc<SkillService>>();
+                let lh_svc = app.state::<Arc<LaunchHistoryService>>();
                 let paths = app.state::<Arc<AppPaths>>();
                 if let Err(e) = orch_svc.start(
                     term_svc.inner().clone(),
@@ -428,6 +429,7 @@ pub fn run() {
                     ws_svc_orch.inner().clone(),
                     todo_svc.inner().clone(),
                     skill_svc.inner().clone(),
+                    lh_svc.inner().clone(),
                     app.handle().clone(),
                     paths.inner().clone(),
                 ) {

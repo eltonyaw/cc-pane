@@ -37,4 +37,4 @@ export type { PlanEntry } from "./planService";
 export { filesystemService } from "./filesystemService";
 export { selfChatService } from "./selfChatService";
 export { screenshotService } from "./screenshotService";
-export { checkForAppUpdates } from "./updaterService";
+export { checkForAppUpdates, checkUpdateSilent, triggerUpdate } from "./updaterService";
