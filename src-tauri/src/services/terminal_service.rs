@@ -528,6 +528,7 @@ impl TerminalService {
         let cancelled = Arc::new(AtomicBool::new(false));
 
         // sanitize 可开关兜底（默认关闭 — dwFlags=0 应该解决了根本问题）
+        #[cfg(windows)]
         let disable_sanitize = self
             .settings_service
             .get_settings()

@@ -838,6 +838,7 @@ dependencies = [
  "encoding_rs",
  "flate2",
  "image",
+ "libc",
  "log",
  "notify",
  "nucleo-matcher",
