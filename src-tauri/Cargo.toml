@@ -1,6 +1,6 @@
 [package]
 name = "cc-panes"
-version = "0.9.10"
+version = "0.9.11"
 description = "CC-Panes - Multi-instance split-pane manager for Claude Code"
 authors = ["wuxiran"]
 license = "GPL-3.0"
@@ -48,7 +48,7 @@ rand = "0.8"
 rmcp = { version = "1", features = ["server", "macros", "transport-streamable-http-server"] }
 schemars = "1"
 nucleo-matcher = "0.3"
-xcap = "0.0.14"
+xcap = "0.8"
 image = "0.25"
 base64 = "0.22"
 tauri-plugin-global-shortcut = "2"

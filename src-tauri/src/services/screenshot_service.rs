@@ -35,10 +35,10 @@ fn get_cursor_position() -> AppResult<(i32, i32)> {
 /// 在显示器列表中找到包含指定坐标的显示器
 fn find_monitor_at_point(monitors: &[xcap::Monitor], x: i32, y: i32) -> Option<usize> {
     monitors.iter().position(|m| {
-        let mx = m.x();
-        let my = m.y();
-        let mw = m.width() as i32;
-        let mh = m.height() as i32;
+        let mx = m.x().unwrap_or(0);
+        let my = m.y().unwrap_or(0);
+        let mw = m.width().unwrap_or(0) as i32;
+        let mh = m.height().unwrap_or(0) as i32;
         x >= mx && x < mx + mw && y >= my && y < my + mh
     })
 }
@@ -84,14 +84,14 @@ impl ScreenshotService {
         let monitor = &monitors[monitor_idx];
         let img = monitor
             .capture_image()
-            .map_err(|e| format!("Failed to capture monitor '{}': {}", monitor.name(), e))?;
+            .map_err(|e| format!("Failed to capture monitor '{}': {}", monitor.name().unwrap_or_default(), e))?;
 
         Ok(CaptureResult {
             image: img,
-            monitor_x: monitor.x(),
-            monitor_y: monitor.y(),
-            monitor_width: monitor.width(),
-            monitor_height: monitor.height(),
+            monitor_x: monitor.x().unwrap_or(0),
+            monitor_y: monitor.y().unwrap_or(0),
+            monitor_width: monitor.width().unwrap_or(0),
+            monitor_height: monitor.height().unwrap_or(0),
         })
     }
 
