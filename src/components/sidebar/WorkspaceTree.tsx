@@ -11,10 +11,10 @@ import { useWorkspaceActions } from "./useWorkspaceActions";
 import WorkspaceDialogs from "./WorkspaceDialogs";
 import WorkspaceItem from "./WorkspaceItem";
 import ProjectListView from "./ProjectListView";
-import type { Workspace, WorkspaceProject } from "@/types";
+import type { Workspace, WorkspaceProject, CliTool } from "@/types";
 
 interface WorkspaceTreeProps {
-  onOpenTerminal: (path: string, workspaceName?: string, providerId?: string, workspacePath?: string, launchClaude?: boolean) => void;
+  onOpenTerminal: (path: string, workspaceName?: string, providerId?: string, workspacePath?: string, cliTool?: CliTool) => void;
 }
 
 export default function WorkspaceTree({ onOpenTerminal }: WorkspaceTreeProps) {

@@ -20,6 +20,8 @@ import {
 } from "@/stores";
 import { isTauriReady } from "@/utils";
 
+import type { CliTool } from "@/types";
+
 interface OrchestratorLaunchPayload {
   taskId: string;
   sessionId: string;
@@ -30,6 +32,7 @@ interface OrchestratorLaunchPayload {
   workspacePath?: string;
   title?: string;
   paneId?: string;
+  cliTool?: string;
 }
 
 export function useOrchestratorListener() {
@@ -52,6 +55,7 @@ export function useOrchestratorListener() {
             workspacePath,
             title,
             paneId: targetPaneId,
+            cliTool: rawCliTool,
           } = event.payload;
 
           console.info(
@@ -78,6 +82,7 @@ export function useOrchestratorListener() {
             paneId = activePane?.id ?? panesStore.rootPane.id;
           }
 
+          const resolvedCliTool = (rawCliTool === "codex" ? "codex" : "claude") as CliTool;
           panesStore.addTab(
             paneId,
             projectId,
@@ -86,7 +91,7 @@ export function useOrchestratorListener() {
             workspaceName,
             providerId,
             workspacePath,
-            true,
+            resolvedCliTool,
             title
           );
 

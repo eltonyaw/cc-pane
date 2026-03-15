@@ -26,9 +26,11 @@ function loadSidebarWidth(): number {
   return DEFAULT_WIDTH;
 }
 
+import type { CliTool } from "@/types";
+
 interface SidebarProps {
   activeView: ActivityView;
-  onOpenTerminal: (path: string, workspaceName?: string, providerId?: string, workspacePath?: string, launchClaude?: boolean, resumeId?: string) => void;
+  onOpenTerminal: (path: string, workspaceName?: string, providerId?: string, workspacePath?: string, cliTool?: CliTool, resumeId?: string) => void;
 }
 
 export default function Sidebar({

@@ -1,24 +1,25 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { toast } from "sonner";
 import {
   Folder, Trash2, Plus, Pencil, Clock,
-  FolderOpen, Terminal, GitBranch, Copy, Files,
+  FolderOpen, Terminal, GitBranch, Copy, Files, FileText,
 } from "lucide-react";
 import {
   ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger,
   ContextMenuSeparator, ContextMenuSub, ContextMenuSubTrigger, ContextMenuSubContent,
 } from "@/components/ui/context-menu";
 import { useProvidersStore, useDialogStore } from "@/stores";
+import { specService } from "@/services/specService";
 import { getProjectName } from "@/utils";
-import type { Workspace, WorkspaceProject } from "@/types";
+import type { Workspace, WorkspaceProject, CliTool, SpecEntry } from "@/types";
 
 interface ProjectListViewProps {
   projects: WorkspaceProject[];
   ws: Workspace;
   gitBranches: Record<string, string | null>;
-  onOpenTerminal: (path: string, workspaceName?: string, providerId?: string, workspacePath?: string, launchClaude?: boolean) => void;
+  onOpenTerminal: (path: string, workspaceName?: string, providerId?: string, workspacePath?: string, cliTool?: CliTool) => void;
   onRemoveProject: (ws: Workspace, project: WorkspaceProject) => void;
   onSetProjectAlias: (ws: Workspace, project: WorkspaceProject) => void;
   onImportProject: (ws: Workspace) => void;
@@ -44,9 +45,42 @@ export default function ProjectListView({
   onOpenTerminal, onRemoveProject, onSetProjectAlias,
   onImportProject, onOpenWorktreeManager, onOpenInFileBrowser,
 }: ProjectListViewProps) {
-  const { t } = useTranslation(["sidebar", "common"]);
+  const { t } = useTranslation(["sidebar", "common", "spec"]);
   const providerList = useProvidersStore((s) => s.providers);
   const onOpenHistory = useDialogStore((s) => s.openLocalHistory);
+  const onOpenTodo = useDialogStore((s) => s.openTodo);
+  const [projectSpecs, setProjectSpecs] = useState<Record<string, SpecEntry[]>>({});
+
+  const handleLoadSpecs = useCallback(async (projectPath: string) => {
+    try {
+      const specs = await specService.list(projectPath);
+      setProjectSpecs((prev) => ({ ...prev, [projectPath]: specs }));
+    } catch {
+      setProjectSpecs((prev) => ({ ...prev, [projectPath]: [] }));
+    }
+  }, []);
+
+  const handleNewSpec = useCallback(async (projectPath: string) => {
+    const title = window.prompt(t("specTitlePlaceholder", { ns: "spec" }));
+    if (!title?.trim()) return;
+    try {
+      await specService.create({ projectPath, title: title.trim() });
+      toast.success(t("specCreated", { ns: "spec" }));
+      // 打开关联的 Todo（在 Todo 面板中显示）
+      onOpenTodo("project", projectPath);
+    } catch (e) {
+      toast.error(String(e));
+    }
+  }, [t, onOpenTodo]);
+
+  const handleOpenSpec = useCallback(async (projectPath: string, spec: SpecEntry) => {
+    try {
+      const specPath = `${projectPath}/.ccpanes/specs/${spec.fileName}`;
+      await openPath(specPath);
+    } catch (e) {
+      toast.error(String(e));
+    }
+  }, []);
 
   const handleRevealFolder = useCallback(async (path: string) => {
     try {
@@ -93,7 +127,7 @@ export default function ProjectListView({
                   <Terminal /> {t("openClaudeCode")}
                 </ContextMenuSubTrigger>
                 <ContextMenuSubContent className="w-48">
-                  <ContextMenuItem onClick={() => onOpenTerminal(project.path, ws.name, ws.providerId, ws.path, true)}>
+                  <ContextMenuItem onClick={() => onOpenTerminal(project.path, ws.name, ws.providerId, ws.path, "claude")}>
                     {t("useWorkspaceProvider")}
                     {ws.providerId && providerList.find(p => p.id === ws.providerId) && (
                       <span className="ml-auto text-[10px] opacity-60">
@@ -105,13 +139,17 @@ export default function ProjectListView({
                   {providerList.map((p) => (
                     <ContextMenuItem
                       key={p.id}
-                      onClick={() => onOpenTerminal(project.path, ws.name, p.id, ws.path, true)}
+                      onClick={() => onOpenTerminal(project.path, ws.name, p.id, ws.path, "claude")}
                     >
                       {p.name}
                     </ContextMenuItem>
                   ))}
                 </ContextMenuSubContent>
               </ContextMenuSub>
+              {/* Launch Codex CLI */}
+              <ContextMenuItem onClick={() => onOpenTerminal(project.path, ws.name, ws.providerId, ws.path, "codex")}>
+                <Terminal /> {t("openCodexCli")}
+              </ContextMenuItem>
               <ContextMenuItem onClick={() => handleRevealFolder(project.path)}>
                 <FolderOpen /> {t("openFolder")}
               </ContextMenuItem>
@@ -135,6 +173,36 @@ export default function ProjectListView({
               <ContextMenuItem onClick={() => onOpenWorktreeManager(project, ws)}>
                 <GitBranch /> {t("worktreeManager")}
               </ContextMenuItem>
+              <ContextMenuSeparator />
+              {/* Spec */}
+              <ContextMenuItem onClick={() => handleNewSpec(project.path)}>
+                <FileText /> {t("newSpec")}
+              </ContextMenuItem>
+              <ContextMenuSub>
+                <ContextMenuSubTrigger onPointerEnter={() => handleLoadSpecs(project.path)}>
+                  <FileText /> {t("viewSpecs")}
+                </ContextMenuSubTrigger>
+                <ContextMenuSubContent className="w-52">
+                  {(projectSpecs[project.path] || []).length === 0 ? (
+                    <ContextMenuItem disabled>{t("noSpecs")}</ContextMenuItem>
+                  ) : (
+                    (projectSpecs[project.path] || []).map((spec) => (
+                      <ContextMenuItem key={spec.id} onClick={() => handleOpenSpec(project.path, spec)}>
+                        <span className="flex-1 truncate">{spec.title}</span>
+                        <span className={`text-[9px] ml-2 px-1 py-0.5 rounded ${
+                          spec.status === "active"
+                            ? "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300"
+                            : spec.status === "archived"
+                            ? "bg-gray-100 text-gray-500 dark:bg-gray-500/20 dark:text-gray-400"
+                            : "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300"
+                        }`}>
+                          {spec.status}
+                        </span>
+                      </ContextMenuItem>
+                    ))
+                  )}
+                </ContextMenuSubContent>
+              </ContextMenuSub>
               <ContextMenuSeparator />
               <ContextMenuItem onClick={() => onSetProjectAlias(ws, project)}>
                 <Pencil /> {t("setAlias")}

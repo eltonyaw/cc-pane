@@ -113,6 +113,8 @@ export function createTestSettings(overrides?: Partial<AppSettings>): AppSetting
       language: "en",
       dataDir: null,
       searchScope: "Workspace",
+      onboardingCompleted: false,
+      defaultCliTool: "claude",
     },
     notification: {
       enabled: true,

@@ -126,6 +126,8 @@
   "providerTypeProxyDesc": "Access via third-party API proxy",
   "providerTypeConfigLabel": "Config Profile",
   "providerTypeConfigDesc": "Point to Claude Code config directory or ccswitch profile",
+  "providerTypeOpenAILabel": "OpenAI",
+  "providerTypeOpenAIDesc": "Use OpenAI API (for Codex CLI)",
 
   "nameRequired": "Name is required",
   "operationFailed": "Operation failed: {{error}}",
@@ -143,6 +145,9 @@
   "file": "File",
   "openDir": "Open Directory",
   "editSettings": "Edit settings",
+
+  "defaultCliTool": "Default CLI Tool",
+  "defaultCliToolDesc": "Default CLI tool for self-dialogue, session resume, and other scenarios",
 
   "searchScope": "Search Scope",
   "searchScopeDesc": "Controls the range of file search indexing",

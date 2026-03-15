@@ -50,6 +50,11 @@ interface DialogState {
   openSelfChat: () => void;
   closeSelfChat: () => void;
 
+  // Onboarding
+  onboardingOpen: boolean;
+  openOnboarding: () => void;
+  closeOnboarding: () => void;
+
   // Pending Launch（Settings → App 跨组件启动传递）
   pendingLaunch: PendingLaunch | null;
   setPendingLaunch: (launch: PendingLaunch) => void;
@@ -99,6 +104,11 @@ export const useDialogStore = create<DialogState>((set) => ({
   selfChatOpen: false,
   openSelfChat: () => set({ selfChatOpen: true }),
   closeSelfChat: () => set({ selfChatOpen: false }),
+
+  // Onboarding
+  onboardingOpen: false,
+  openOnboarding: () => set({ onboardingOpen: true }),
+  closeOnboarding: () => set({ onboardingOpen: false }),
 
   // Pending Launch
   pendingLaunch: null,

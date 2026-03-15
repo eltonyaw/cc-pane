@@ -47,6 +47,9 @@
   "SUBTASK_TITLE_EMPTY": "子任务标题不能为空",
   "SUBTASK_NOT_FOUND": "子任务 {{id}} 不存在",
 
+  "SPEC_TITLE_EMPTY": "Spec 标题不能为空",
+  "SPEC_NOT_FOUND": "Spec {{id}} 不存在",
+
   "SKILL_NAME_EMPTY": "Skill 名称不能为空",
   "SKILL_NAME_PATH_SEPARATOR": "Skill 名称不能包含路径分隔符",
   "SKILL_NAME_DOT_PREFIX": "Skill 名称不能以 '.' 开头",

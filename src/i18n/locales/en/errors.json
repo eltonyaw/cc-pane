@@ -47,6 +47,9 @@
   "SUBTASK_TITLE_EMPTY": "Subtask title cannot be empty",
   "SUBTASK_NOT_FOUND": "Subtask {{id}} not found",
 
+  "SPEC_TITLE_EMPTY": "Spec title cannot be empty",
+  "SPEC_NOT_FOUND": "Spec {{id}} not found",
+
   "SKILL_NAME_EMPTY": "Skill name cannot be empty",
   "SKILL_NAME_PATH_SEPARATOR": "Skill name cannot contain path separators",
   "SKILL_NAME_DOT_PREFIX": "Skill name cannot start with '.'",

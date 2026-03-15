@@ -9,7 +9,8 @@
 //! - 项目路径白名单校验
 //! - 请求频率限制
 
-use crate::services::{ProjectService, ProviderService, TerminalService, WorkspaceService, TodoService, SkillService, LaunchHistoryService};
+use crate::services::{ProjectService, ProviderService, TerminalService, WorkspaceService, TodoService, SpecService, SkillService, LaunchHistoryService};
+use crate::models::CliTool;
 use crate::models::todo::{TodoQuery, CreateTodoRequest, UpdateTodoRequest, TodoStatus, TodoPriority, TodoScope};
 use crate::utils::AppPaths;
 use anyhow::Result;
@@ -51,6 +52,8 @@ pub struct LaunchTaskRequest {
     pub resume_id: Option<String>,
     /// 指定目标面板 ID（可选，不指定则使用活跃面板。通过 list_panes 获取可用面板）
     pub pane_id: Option<String>,
+    /// CLI 工具类型：`"claude"` | `"codex"`，默认 `"claude"`
+    pub cli_tool: Option<String>,
 }
 
 /// 启动任务响应
@@ -106,6 +109,7 @@ pub struct OrchestratorLaunchEvent {
     pub title: Option<String>,
     pub resume_id: Option<String>,
     pub pane_id: Option<String>,
+    pub cli_tool: Option<String>,
 }
 
 /// 文件浏览器导航事件
@@ -155,6 +159,7 @@ pub struct AppState {
     pub project_service: Arc<ProjectService>,
     pub workspace_service: Arc<WorkspaceService>,
     pub todo_service: Arc<TodoService>,
+    pub spec_service: Arc<SpecService>,
     pub skill_service: Arc<SkillService>,
     pub launch_history_service: Arc<LaunchHistoryService>,
     pub app_handle: AppHandle,
@@ -209,6 +214,7 @@ impl OrchestratorService {
         project_service: Arc<ProjectService>,
         workspace_service: Arc<WorkspaceService>,
         todo_service: Arc<TodoService>,
+        spec_service: Arc<SpecService>,
         skill_service: Arc<SkillService>,
         launch_history_service: Arc<LaunchHistoryService>,
         app_handle: AppHandle,
@@ -222,6 +228,7 @@ impl OrchestratorService {
             project_service,
             workspace_service,
             todo_service,
+            spec_service,
             skill_service,
             launch_history_service,
             app_handle,
@@ -415,6 +422,9 @@ struct McpLaunchTaskParams {
     /// 指定目标面板 ID（可选，不指定则使用活跃面板。通过 list_panes 获取可用面板）
     #[serde(rename = "paneId")]
     pane_id: Option<String>,
+    /// CLI 工具类型：`"claude"` | `"codex"`，默认 `"claude"`
+    #[serde(rename = "cliTool")]
+    cli_tool: Option<String>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
@@ -607,6 +617,28 @@ impl McpToolHandler {
         let tool_router = Self::tool_router();
         Self { state, tool_router }
     }
+
+    /// Spec 后置钩子：如果 Todo 是 spec 类型，自动同步 Tasks 段到 Spec 文件
+    fn try_sync_spec_for_todo(&self, todo: &crate::models::todo::TodoItem) {
+        if todo.todo_type != "spec" {
+            return;
+        }
+        // 从 description 解析 spec_id（格式："Spec: {spec_id}"）
+        let spec_id = match todo.description.as_deref() {
+            Some(desc) if desc.starts_with("Spec: ") => desc[6..].trim(),
+            _ => return,
+        };
+        if spec_id.is_empty() {
+            return;
+        }
+        let project_path = match &todo.scope_ref {
+            Some(p) => p.clone(),
+            None => return,
+        };
+        if let Err(e) = self.state.spec_service.sync_tasks(&project_path, spec_id) {
+            warn!("[mcp] spec sync_tasks post-hook failed: {}", e);
+        }
+    }
 }
 
 #[tool_router]
@@ -660,6 +692,12 @@ impl McpToolHandler {
         let task_id = uuid::Uuid::new_v4().to_string();
         let project_id = format!("orch-{}", uuid::Uuid::new_v4());
 
+        // 解析 CLI 工具类型
+        let cli_tool = match params.cli_tool.as_deref() {
+            Some("codex") => CliTool::Codex,
+            _ => CliTool::Claude, // 默认 Claude
+        };
+
         // 创建 PTY 会话（resume 时传 resume_id）
         let session_id = match self.state.terminal_service.create_session(
             self.state.app_handle.clone(),
@@ -668,7 +706,7 @@ impl McpToolHandler {
             ws_name.as_deref(),
             provider_id.as_deref(),
             ws_path.as_deref(),
-            true,
+            cli_tool,
             params.resume_id.as_deref(),
             false,
             None,
@@ -705,6 +743,7 @@ impl McpToolHandler {
             title: params.title.clone(),
             resume_id: params.resume_id.clone(),
             pane_id: params.pane_id.clone(),
+            cli_tool: params.cli_tool.clone(),
         };
         let _ = self.state.app_handle.emit("orchestrator-launch-task", &event);
 
@@ -952,7 +991,11 @@ impl McpToolHandler {
             ..Default::default()
         };
         match self.state.todo_service.update_todo(&params.id, req) {
-            Ok(todo) => serde_json::to_string(&todo).unwrap_or_else(|e| format!("错误: 序列化失败: {}", e)),
+            Ok(todo) => {
+                // Spec 后置钩子：如果该 Todo 是 spec 类型，自动同步到 Spec 文件
+                self.try_sync_spec_for_todo(&todo);
+                serde_json::to_string(&todo).unwrap_or_else(|e| format!("错误: 序列化失败: {}", e))
+            }
             Err(e) => format!("错误: {}", e),
         }
     }
@@ -1472,6 +1515,12 @@ async fn handle_launch_task(
     let task_id = uuid::Uuid::new_v4().to_string();
     let project_id = format!("orch-{}", uuid::Uuid::new_v4());
 
+    // 解析 CLI 工具类型
+    let cli_tool = match req.cli_tool.as_deref() {
+        Some("codex") => CliTool::Codex,
+        _ => CliTool::Claude,
+    };
+
     let session_id = match state.terminal_service.create_session(
         state.app_handle.clone(),
         &req.project_path,
@@ -1479,7 +1528,7 @@ async fn handle_launch_task(
         req.workspace_name.as_deref(),
         req.provider_id.as_deref(),
         req.workspace_path.as_deref(),
-        true,
+        cli_tool,
         req.resume_id.as_deref(),
         false,
         None,
@@ -1520,6 +1569,7 @@ async fn handle_launch_task(
         title: req.title.clone(),
         resume_id: req.resume_id.clone(),
         pane_id: req.pane_id.clone(),
+        cli_tool: req.cli_tool.clone(),
     };
     let _ = state.app_handle.emit("orchestrator-launch-task", &event);
 

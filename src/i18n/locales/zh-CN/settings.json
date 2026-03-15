@@ -126,6 +126,8 @@
   "providerTypeProxyDesc": "通过第三方 API 代理",
   "providerTypeConfigLabel": "配置文件",
   "providerTypeConfigDesc": "指向 Claude Code 配置目录或 ccswitch 配置文件",
+  "providerTypeOpenAILabel": "OpenAI",
+  "providerTypeOpenAIDesc": "使用 OpenAI API（适用于 Codex CLI）",
 
   "nameRequired": "请输入名称",
   "operationFailed": "操作失败: {{error}}",
@@ -143,6 +145,9 @@
   "file": "文件",
   "openDir": "打开目录",
   "editSettings": "编辑 settings",
+
+  "defaultCliTool": "默认 CLI 工具",
+  "defaultCliToolDesc": "自我对话、会话恢复等场景使用的默认 CLI 工具",
 
   "searchScope": "搜索范围",
   "searchScopeDesc": "控制文件搜索的索引范围",

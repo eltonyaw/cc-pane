@@ -224,12 +224,23 @@ impl WorkspaceService {
         Ok(())
     }
 
+    /// 归一化项目路径用于比较：统一分隔符为 /、去除尾部斜杠、Windows 上转小写
+    fn normalize_project_path(p: &str) -> String {
+        let normalized = p.replace('\\', "/").trim_end_matches('/').to_string();
+        if cfg!(windows) {
+            normalized.to_lowercase()
+        } else {
+            normalized
+        }
+    }
+
     /// 添加项目到工作空间
     pub fn add_project(&self, workspace_name: &str, path: &str) -> Result<WorkspaceProject, String> {
         let mut workspace = self.get_workspace(workspace_name)?;
 
-        // 检查路径是否已存在
-        if workspace.projects.iter().any(|p| p.path == path) {
+        // 检查路径是否已存在（归一化比较：统一分隔符、去尾部斜杠、Windows 忽略大小写）
+        let norm_input = Self::normalize_project_path(path);
+        if workspace.projects.iter().any(|p| Self::normalize_project_path(&p.path) == norm_input) {
             return Err(format!("PROJECT_ALREADY_EXISTS: Project path '{}' already exists in workspace", path));
         }
 

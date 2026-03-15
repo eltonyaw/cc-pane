@@ -35,6 +35,7 @@
   "hideFailed": "隐藏状态更新失败: {{error}}",
   "reorderFailed": "排序失败: {{error}}",
   "openClaudeCode": "打开 Claude Code",
+  "openCodexCli": "打开 Codex CLI",
   "openFolder": "打开文件夹",
   "copyPath": "复制路径",
   "absolutePath": "绝对路径",
@@ -136,5 +137,8 @@
   "recentFiles.recent": "最近",
   "recentFiles.placeholder": "搜索最近文件...",
   "recentFiles.noMatch": "没有匹配的文件",
-  "recentFiles.noRecent": "没有最近的文件"
+  "recentFiles.noRecent": "没有最近的文件",
+  "newSpec": "新建 Spec",
+  "viewSpecs": "查看 Specs",
+  "noSpecs": "暂无 Spec"
 }

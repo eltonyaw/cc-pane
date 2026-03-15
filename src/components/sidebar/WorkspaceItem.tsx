@@ -12,9 +12,10 @@ import {
   ContextMenuSeparator, ContextMenuSub, ContextMenuSubTrigger, ContextMenuSubContent,
   ContextMenuCheckboxItem, ContextMenuRadioGroup, ContextMenuRadioItem,
 } from "@/components/ui/context-menu";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useProvidersStore, useDialogStore } from "@/stores";
 import { hooksService, type HookStatus } from "@/services";
-import type { Workspace } from "@/types";
+import type { Workspace, CliTool } from "@/types";
 import { useState } from "react";
 
 interface WorkspaceItemProps {
@@ -22,7 +23,7 @@ interface WorkspaceItemProps {
   expanded: boolean;
   children: React.ReactNode;
   onExpand: (wsId: string) => void;
-  onOpenTerminal: (path: string, workspaceName?: string, providerId?: string, workspacePath?: string, launchClaude?: boolean) => void;
+  onOpenTerminal: (path: string, workspaceName?: string, providerId?: string, workspacePath?: string, cliTool?: CliTool) => void;
   onRename: (ws: Workspace) => void;
   onDelete: (ws: Workspace) => void;
   onSetAlias: (ws: Workspace) => void;
@@ -47,6 +48,7 @@ export default function WorkspaceItem({
 
   const displayName = ws.alias || ws.name;
   const rootPath = ws.path || ws.projects[0]?.path;
+  const boundProvider = ws.providerId ? providerList.find(p => p.id === ws.providerId) : undefined;
 
   const fetchHookStatuses = useCallback(async () => {
     if (!rootPath) return;
@@ -110,6 +112,26 @@ export default function WorkspaceItem({
                   Claude
                 </span>
               )}
+              {boundProvider && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium border ${
+                      boundProvider.providerType === "anthropic"
+                        ? "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30"
+                        : boundProvider.providerType === "bedrock"
+                        ? "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-300 dark:border-yellow-500/30"
+                        : boundProvider.providerType === "vertex"
+                        ? "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30"
+                        : boundProvider.providerType === "proxy"
+                        ? "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-500/20 dark:text-violet-300 dark:border-violet-500/30"
+                        : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-500/20 dark:text-slate-300 dark:border-slate-500/30"
+                    }`}>
+                      {boundProvider.name}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">Provider: {boundProvider.name}</TooltipContent>
+                </Tooltip>
+              )}
             </div>
             <span
               className="text-xs px-2 py-0.5 rounded-full text-[var(--app-text-secondary)]"
@@ -133,7 +155,7 @@ export default function WorkspaceItem({
             </ContextMenuSubTrigger>
             <ContextMenuSubContent className="w-48">
               <ContextMenuItem onClick={() => {
-                if (ws.projects.length > 0) onOpenTerminal(ws.projects[0].path, ws.name, ws.providerId, ws.path, true);
+                if (ws.projects.length > 0) onOpenTerminal(ws.projects[0].path, ws.name, ws.providerId, ws.path, "claude");
               }}>
                 {t("useWorkspaceProvider")}
                 {ws.providerId && providerList.find(p => p.id === ws.providerId) && (
@@ -147,7 +169,7 @@ export default function WorkspaceItem({
                 <ContextMenuItem
                   key={p.id}
                   onClick={() => {
-                    if (ws.projects.length > 0) onOpenTerminal(ws.projects[0].path, ws.name, p.id, ws.path, true);
+                    if (ws.projects.length > 0) onOpenTerminal(ws.projects[0].path, ws.name, p.id, ws.path, "claude");
                   }}
                 >
                   {p.name}
@@ -155,6 +177,12 @@ export default function WorkspaceItem({
               ))}
             </ContextMenuSubContent>
           </ContextMenuSub>
+          {/* Launch Codex CLI */}
+          <ContextMenuItem disabled={ws.projects.length === 0} onClick={() => {
+            if (ws.projects.length > 0) onOpenTerminal(ws.projects[0].path, ws.name, ws.providerId, ws.path, "codex");
+          }}>
+            <Terminal /> {t("openCodexCli")}
+          </ContextMenuItem>
           {/* Open in Explorer */}
           <ContextMenuItem disabled={!rootPath} onClick={handleRevealFolder}>
             <FolderOpen /> {t("openFolder")}

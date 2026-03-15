@@ -107,6 +107,14 @@ export default function ActivityBar() {
 
       {/* 视图图标 */}
       <div className="flex flex-col w-full gap-0.5">
+        {/* Self-Chat (AI 助手 — 置顶) */}
+        <ActivityBarIcon
+          icon={<Bot className="w-[22px] h-[22px]" strokeWidth={1.5} />}
+          label={t("selfChat", { ns: "common", defaultValue: "Self Chat" })}
+          active={appViewMode === "selfchat"}
+          onClick={toggleSelfChatMode}
+        />
+
         {viewItems.map((item) => (
           <ActivityBarIcon
             key={item.view}
@@ -123,14 +131,6 @@ export default function ActivityBar() {
           label={t("todoList")}
           active={appViewMode === "todo"}
           onClick={toggleTodoMode}
-        />
-
-        {/* Self-Chat (项目规划助手) */}
-        <ActivityBarIcon
-          icon={<Bot className="w-[22px] h-[22px]" strokeWidth={1.5} />}
-          label={t("selfChat", { ns: "common", defaultValue: "Self Chat" })}
-          active={appViewMode === "selfchat"}
-          onClick={toggleSelfChatMode}
         />
       </div>
 
